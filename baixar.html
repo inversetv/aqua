@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Baixar o Aqua para Android</title>
+<meta name="description" content="Baixe o Aqua, o app que analisa a água pela câmera do celular: fita de teste 4 em 1 ou a própria água, do rio ou no copo.">
+<meta name="theme-color" content="#00103E">
+<meta property="og:title" content="Baixar o Aqua para Android">
+<meta property="og:description" content="Análise da potabilidade da água pela câmera do celular.">
+<meta property="og:image" content="https://inversetv.github.io/aqua/icon-512.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sofia+Sans:wght@400;500;600;700;800;900&display=swap">
+<style>
+:root{
+  --navy:#00103E; --navy-raise:#0A1C52; --navy-line:#22336A;
+  --cyan:#17E1E1; --verde:#00FFBB; --white:#FFFFFF;
+  --muted:#AEB8D3; --ink:#00103E; --ink-muted:#4D5A7C;
+  --aviso:#8A6500; --aviso-soft:#FFF1C7;
+  --f-body:"Sofia Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+*{ box-sizing:border-box; }
+html{ -webkit-text-size-adjust:100%; }
+body{
+  margin:0; min-height:100vh; background:var(--navy); color:var(--white);
+  font-family:var(--f-body); font-size:17px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0);
+}
+a{ color:var(--cyan); }
+img{ max-width:100%; display:block; }
+.pagina{ max-width:1040px; margin:0 auto; padding:24px 20px 0; }
+
+/* topo */
+.topo{ display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.topo img{ width:132px; height:auto; }
+.topo a{ font-weight:700; font-size:15px; text-decoration:none; color:var(--muted); }
+.topo a:hover{ color:var(--white); }
+
+/* destaque */
+.destaque{ display:grid; grid-template-columns:1fr; gap:36px; align-items:center; padding:44px 0 36px; }
+.selo{ display:inline-block; margin:0 0 14px; padding:5px 12px; border-radius:999px; background:var(--navy-raise);
+  border:1px solid var(--navy-line); color:var(--verde); font-weight:700; font-size:14px; letter-spacing:.02em; }
+h1{ margin:0 0 16px; font-weight:900; font-size:clamp(38px, 9.5vw, 62px); line-height:1.02; letter-spacing:-.02em; text-wrap:balance; }
+h1 em{ font-style:normal; color:var(--cyan); }
+.lead{ margin:0 0 28px; max-width:34em; color:var(--muted); font-size:19px; }
+
+/* cartão do app, como numa loja */
+.app{ display:flex; gap:16px; align-items:center; margin:0 0 22px; }
+.app img{ width:68px; height:68px; border-radius:16px; box-shadow:0 0 0 1px var(--navy-line); }
+.app strong{ display:block; font-size:20px; line-height:1.2; }
+.app span{ display:block; color:var(--muted); font-size:15px; }
+
+.botao{
+  display:flex; align-items:center; justify-content:center; gap:12px; width:100%; max-width:420px;
+  min-height:62px; padding:16px 26px; border-radius:999px; border:0; cursor:pointer;
+  background:var(--verde); color:var(--navy); font:800 20px/1.2 var(--f-body); text-decoration:none;
+  box-shadow:0 10px 30px rgba(0,255,187,.18); transition:transform .15s ease, box-shadow .15s ease;
+}
+.botao:hover{ transform:translateY(-1px); box-shadow:0 14px 34px rgba(0,255,187,.26); }
+.botao:active{ transform:translateY(1px); }
+.botao:focus-visible, .botao-2:focus-visible{ outline:3px solid var(--cyan); outline-offset:3px; }
+.botao svg{ width:24px; height:24px; flex:none; }
+.botao-2{
+  display:flex; align-items:center; justify-content:center; width:100%; max-width:420px; min-height:52px; margin-top:12px;
+  padding:12px 22px; border-radius:999px; border:1.5px solid var(--navy-line); color:var(--white);
+  font-weight:700; font-size:17px; text-decoration:none; background:transparent;
+}
+.botao-2:hover{ border-color:var(--cyan); color:var(--cyan); }
+.detalhes{ margin:14px 0 0; color:var(--muted); font-size:14.5px; }
+.aviso-plataforma{ display:none; max-width:420px; margin:0 0 14px; padding:14px 16px; border-radius:14px;
+  background:var(--aviso-soft); color:#3D2D00; font-size:15.5px; }
+.aviso-plataforma strong{ color:var(--aviso); }
+
+/* lado do destaque: o que o app faz */
+.recursos{ display:grid; gap:12px; margin:0; padding:0; list-style:none; }
+.recursos li{ display:flex; gap:14px; align-items:flex-start; padding:18px; border-radius:18px;
+  background:var(--navy-raise); border:1px solid var(--navy-line); }
+.recursos .ic{ flex:none; width:44px; height:44px; border-radius:12px; display:grid; place-items:center;
+  background:rgba(23,225,225,.12); color:var(--cyan); }
+.recursos .ic svg{ width:24px; height:24px; }
+.recursos strong{ display:block; font-size:18px; line-height:1.25; margin-bottom:2px; }
+.recursos span{ color:var(--muted); font-size:15.5px; }
+
+/* como instalar */
+.secao{ padding:40px 0; border-top:1px solid var(--navy-line); }
+h2{ margin:0 0 8px; font-weight:900; font-size:clamp(28px, 6vw, 36px); line-height:1.08; letter-spacing:-.015em; }
+.sub{ margin:0 0 24px; color:var(--muted); }
+.passos{ display:grid; gap:12px; margin:0; padding:0; list-style:none; counter-reset:passo; }
+.passos li{ position:relative; padding:16px 18px 16px 64px; border-radius:16px; background:var(--white); color:var(--ink); counter-increment:passo; }
+.passos li::before{ content:counter(passo); position:absolute; left:16px; top:14px; width:32px; height:32px; border-radius:50%;
+  display:grid; place-items:center; background:var(--cyan); color:var(--navy); font-weight:800; font-size:17px; }
+.passos strong{ display:block; font-size:17.5px; line-height:1.3; }
+.passos span{ display:block; color:var(--ink-muted); font-size:15.5px; }
+.porque{ margin:18px 0 0; padding:16px 18px; border-radius:16px; border:1px dashed var(--navy-line); color:var(--muted); font-size:15.5px; }
+.porque strong{ color:var(--white); }
+
+/* QR code */
+.qr{ display:grid; gap:22px; align-items:center; }
+.qr .qr-caixa{ order:2; }
+.qr-caixa{ width:min(240px, 70vw); padding:14px; border-radius:20px; background:var(--white); }
+.qr-caixa svg{ display:block; width:100%; height:auto; }
+.qr p{ margin:0 0 10px; color:var(--muted); }
+.qr code{ font-size:15px; color:var(--white); background:var(--navy-raise); padding:3px 8px; border-radius:8px; overflow-wrap:anywhere; }
+
+/* rodapé */
+.rodape{ padding:30px 0 40px; border-top:1px solid var(--navy-line); color:var(--muted); font-size:14.5px; }
+.rodape p{ margin:0 0 6px; }
+.rodape strong{ color:var(--white); font-weight:700; }
+
+@media (min-width:860px){
+  .pagina{ padding:32px 40px 0; }
+  .destaque{ grid-template-columns:1.1fr .9fr; gap:56px; padding:72px 0 64px; }
+  .passos{ grid-template-columns:1fr 1fr; }
+  .qr{ grid-template-columns:auto 1fr; gap:36px; }
+  .qr .qr-caixa{ order:0; }
+}
+@media (prefers-reduced-motion:reduce){ .botao{ transition:none; } }
+</style>
+</head>
+<body>
+<div class="pagina">
+
+  <header class="topo">
+    <a href="./" aria-label="Aqua — abrir o site"><img src="aqua-logo.png" alt="Aqua" width="640" height="286"></a>
+    <a href="./">Usar no navegador →</a>
+  </header>
+
+  <main>
+    <section class="destaque">
+      <div>
+        <p class="selo">App para Android · grátis</p>
+        <h1>A água na <em>câmera</em> do celular</h1>
+        <p class="lead">Fotografe a fita de teste 4 em 1 ou a própria água, do rio ou num copo, e veja na hora se ela está dentro dos padrões.</p>
+
+        <div class="app">
+          <img src="icon-192.png" alt="" width="192" height="192">
+          <div>
+            <strong>Aqua</strong>
+            <span>Versão 1.2 · 2 MB · Android 6 ou mais novo</span>
+          </div>
+        </div>
+
+        <p class="aviso-plataforma" id="aviso-iphone"><strong>No iPhone o app não instala.</strong> O Aqua funciona igualzinho pelo navegador: toque em “Usar no navegador”.</p>
+        <p class="aviso-plataforma" id="aviso-app"><strong>Você já está no app Aqua.</strong> Não precisa baixar de novo.</p>
+
+        <a class="botao" id="baixar" href="Aqua.apk" download="Aqua.apk" type="application/vnd.android.package-archive">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/><path d="M4 20h16"/></svg>
+          Baixar o Aqua
+        </a>
+        <a class="botao-2" href="./">Usar no navegador, sem instalar</a>
+        <p class="detalhes">O app precisa de internet para funcionar.</p>
+      </div>
+
+      <ul class="recursos" aria-label="O que o Aqua faz">
+        <li>
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="20" rx="1.5"/><path d="M9 7h6M9 11h6M9 15h6"/></svg></span>
+          <div><strong>Fita de teste 4 em 1</strong><span>Cloro livre, alcalinidade, pH e dureza total lidos pelas cores da fita.</span></div>
+        </li>
+        <li>
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5S5.5 9.6 5.5 14a6.5 6.5 0 0 0 13 0C18.5 9.6 12 2.5 12 2.5Z"/></svg></span>
+          <div><strong>Água direta</strong><span>Do rio, no copo de lado ou de cima: o app acha a água na foto e separa do fundo.</span></div>
+        </li>
+        <li>
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.6 2.6L16.5 9"/></svg></span>
+          <div><strong>Resultado na hora</strong><span>Comparação com a cartela de cor, do barro à água limpa, e o que fazer em cada caso.</span></div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="secao" aria-labelledby="como">
+      <h2 id="como">Como instalar</h2>
+      <p class="sub">Leva menos de um minuto. Faça pelo celular Android.</p>
+      <ol class="passos">
+        <li><strong>Toque em “Baixar o Aqua”</strong><span>Se o navegador perguntar, toque em “Baixar mesmo assim”.</span></li>
+        <li><strong>Abra o arquivo Aqua.apk</strong><span>Pela notificação do download ou pela pasta Downloads.</span></li>
+        <li><strong>Permita a instalação</strong><span>Se o celular pedir, ative “Permitir desta fonte” e volte.</span></li>
+        <li><strong>Se aparecer o aviso do Play Protect</strong><span>Toque em “Mais detalhes” e depois em “Instalar mesmo assim”.</span></li>
+        <li><strong>Abra o Aqua</strong><span>Na primeira vez que usar a câmera, toque em “Permitir”.</span></li>
+        <li><strong>Já tem o Aqua?</strong><span>Baixe e instale de novo: a versão nova entra por cima da antiga.</span></li>
+      </ol>
+      <p class="porque"><strong>Por que aparece aviso?</strong> O Aqua é um projeto escolar e não está na Play Store. O Android avisa sobre todo app instalado de fora da loja, mesmo os seguros.</p>
+    </section>
+
+    <section class="secao qr" aria-labelledby="qr">
+      <div class="qr-caixa"><svg role="img" aria-label="Código QR para inversetv.github.io/aqua/baixar.html" viewBox="0 0 37 37" class="segno"><path fill="#fff" d="M0 0h37v37h-37z"/><path class="qrline" stroke="#00103e" d="M2 2.5h7m4 0h3m4 0h3m1 0h2m2 0h7m-33 1h1m5 0h1m1 0h2m1 0h2m1 0h1m2 0h1m2 0h1m2 0h1m2 0h1m5 0h1m-33 1h1m1 0h3m1 0h1m1 0h2m1 0h2m1 0h1m4 0h2m1 0h2m2 0h1m1 0h3m1 0h1m-33 1h1m1 0h3m1 0h1m2 0h2m1 0h1m5 0h1m3 0h1m3 0h1m1 0h3m1 0h1m-33 1h1m1 0h3m1 0h1m3 0h1m1 0h3m5 0h1m3 0h1m1 0h1m1 0h3m1 0h1m-33 1h1m5 0h1m2 0h1m2 0h3m4 0h1m1 0h2m1 0h1m1 0h1m5 0h1m-33 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-24 1h5m3 0h1m4 0h2m-23 1h3m1 0h2m2 0h3m1 0h2m1 0h3m1 0h2m1 0h2m5 0h2m-29 1h2m2 0h4m1 0h1m1 0h4m1 0h3m1 0h1m2 0h2m1 0h2m1 0h1m-29 1h1m1 0h1m4 0h1m3 0h2m1 0h1m4 0h7m1 0h2m-33 1h1m2 0h1m1 0h1m5 0h1m1 0h2m1 0h2m1 0h1m4 0h1m2 0h1m1 0h1m1 0h2m-33 1h1m2 0h2m1 0h1m1 0h2m2 0h1m2 0h1m3 0h1m2 0h1m1 0h2m2 0h2m1 0h2m-33 1h4m4 0h3m5 0h2m1 0h1m2 0h1m1 0h1m2 0h1m1 0h3m-30 1h2m2 0h2m2 0h1m2 0h3m2 0h3m3 0h1m1 0h4m-28 1h2m1 0h1m3 0h2m3 0h1m1 0h3m1 0h3m1 0h4m1 0h2m-31 1h2m1 0h4m1 0h4m1 0h3m1 0h1m1 0h5m1 0h2m1 0h3m-31 1h3m1 0h1m2 0h1m4 0h1m1 0h1m2 0h1m2 0h1m2 0h4m1 0h2m1 0h2m-32 1h6m1 0h2m4 0h2m4 0h1m3 0h1m2 0h2m1 0h1m-29 1h2m1 0h1m1 0h3m1 0h2m3 0h1m2 0h1m4 0h3m1 0h1m-29 1h1m1 0h1m1 0h3m2 0h3m1 0h1m1 0h1m1 0h1m1 0h1m1 0h2m2 0h1m1 0h1m1 0h3m-32 1h3m6 0h1m2 0h1m1 0h1m3 0h4m1 0h1m2 0h1m2 0h1m2 0h1m-27 1h2m4 0h1m1 0h3m3 0h1m1 0h2m3 0h1m2 0h3m-32 1h2m1 0h1m3 0h1m1 0h1m1 0h2m1 0h1m2 0h3m1 0h2m4 0h1m2 0h1m-32 1h1m5 0h5m2 0h1m1 0h1m1 0h2m3 0h1m1 0h5m2 0h2m-25 1h4m2 0h1m1 0h1m2 0h1m1 0h2m1 0h1m3 0h2m-30 1h7m2 0h1m1 0h2m1 0h6m1 0h1m1 0h2m1 0h1m1 0h1m-29 1h1m5 0h1m1 0h1m7 0h2m1 0h3m1 0h2m3 0h4m-32 1h1m1 0h3m1 0h1m4 0h3m2 0h1m1 0h2m1 0h8m1 0h3m-33 1h1m1 0h3m1 0h1m1 0h1m1 0h3m3 0h2m2 0h1m1 0h1m1 0h1m2 0h1m1 0h4m-33 1h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m7 0h2m2 0h2m1 0h1m-30 1h1m5 0h1m1 0h2m3 0h2m3 0h1m1 0h1m2 0h3m1 0h2m3 0h1m-33 1h7m2 0h2m4 0h1m1 0h1m3 0h3m2 0h1m1 0h1m1 0h1"/></svg></div>
+      <div>
+        <h2 id="qr">Baixe pelo código</h2>
+        <p>Está no computador ou quer passar para um colega? Aponte a câmera do celular para o código e baixe direto nele.</p>
+        <p>Ou digite: <code>inversetv.github.io/aqua/baixar.html</code></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rodape">
+    <p>Desenvolvido pelos alunos da <strong>3ª série 03</strong> da <strong>Escola Estadual de Tempo Integral Carauari</strong>.</p>
+    <p>Resultados estimados pela câmera. Não substituem a análise de um laboratório.</p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var ua = navigator.userAgent || "";
+  var iphone = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  var noApp = /AquaApp\//.test(ua);
+  var botao = document.getElementById("baixar");
+  if (noApp) {
+    document.getElementById("aviso-app").style.display = "block";
+    botao.style.display = "none";
+  } else if (iphone) {
+    document.getElementById("aviso-iphone").style.display = "block";
+    botao.style.display = "none";
+  }
+})();
+</script>
+</body>
+</html>
