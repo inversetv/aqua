@@ -1,0 +1,2257 @@
+<!doctype html><html lang="pt-BR"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><link rel="manifest" href="manifest.json"><meta name="theme-color" content="#00103E"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Aqua"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><link rel="icon" type="image/png" sizes="32x32" href="icones/favicon-32.png"><link rel="apple-touch-icon" href="icones/apple-touch-icon.png"><meta name="description" content="Aqua: scanner de água pela câmera, com fita 4 em 1 ou pela cor da água."></head><body>
+<title>Aqua</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=Sofia+Sans+Extra+Condensed:ital,wght@1,800&family=Sofia+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: o azul-marinho da Aqua é o fundo; os cartões brancos fazem o papel da cartela, onde as cores são comparadas.
+   Celular em uma coluna; no desktop, foto à esquerda e resultado à direita. Visual único da marca, igual nos temas claro e escuro. */
+:root{
+  /* Marca Aqua */
+  --navy:#00103E;
+  --cyan:#17E1E1;
+  --verde:#00FFBB;
+  --white:#FFFFFF;
+  /* Sobre o fundo azul-marinho */
+  --on-navy:#FFFFFF;
+  --on-navy-muted:#AEB8D3;
+  --navy-raise:#0A1C52;
+  --navy-line:#22336A;
+  /* Dentro dos cartões */
+  --card:#FFFFFF;
+  --ink:#00103E;
+  --muted:#4D5A7C;
+  --wash:#F2F5FA;
+  --rule:#DCE2EE;
+  --rule-strong:#A6B1CA;
+  --cyan-soft:#D2F8F8;
+  --aviso:#8A6500;      /* leitura fora da faixa ou incerta */
+  --aviso-soft:#FFF1C7;
+  --ok:#0B7646;
+  --ok-soft:#D9F2E4;
+  /* 5 níveis: totalmente fora (1) → totalmente dentro dos padrões (5) */
+  --n1:#C0262D; --n1-soft:#FCE3E2; --n1-fill:#E5484D;
+  --n2:#A84300; --n2-soft:#FFE8D6; --n2-fill:#FE7800;
+  --n3:#8A6500; --n3-soft:#FFF1C7; --n3-fill:#F2B705;
+  --n4:#36701A; --n4-soft:#E5F3D6; --n4-fill:#7BC043;
+  --n5:#0B7646; --n5-soft:#D9F2E4; --n5-fill:#16A367;
+  --idle:#5A6685;
+  --idle-soft:#E9EDF5;
+  --edge:rgb(0 16 62 / .14);
+  --shadow:0 14px 34px -14px rgb(0 6 26 / .7);
+  --veu:rgb(0 6 26 / .96);
+  --focus:var(--cyan);
+  --f-body:"Sofia Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-tag:"Sofia Sans Extra Condensed", "Arial Narrow", "Roboto Condensed", sans-serif-condensed, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme:dark;
+}
+
+*,*::before,*::after{ box-sizing:border-box; }
+html{ height:100%; }
+body{ min-height:100%; display:flex; flex-direction:column; background:var(--navy); color:var(--on-navy); font-family:var(--f-body); font-size:16px; line-height:1.45; -webkit-font-smoothing:antialiased; }
+button,input,textarea{ font:inherit; color:inherit; }
+:focus-visible{ outline:2px solid var(--focus); outline-offset:2px; }
+
+.app{
+  flex:1 0 auto; width:100%; align-content:start;
+  max-width:1180px; margin:0 auto; display:grid; gap:20px;
+  padding-block:22px 28px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+}
+
+[tabindex="-1"]:focus{ outline:none; }
+
+/* Tela inicial */
+.inicio{ display:grid; gap:22px; padding-block:6px 4px; }
+.inicio-topo{ display:grid; gap:10px; }
+.inicio-topo h1{ margin:0; line-height:0; }
+.inicio-topo img{ display:block; width:clamp(170px, 26vw, 240px); height:auto; }
+.tagline{ margin:0; font-size:15.5px; color:var(--on-navy-muted); }
+.pergunta{ margin:6px 0 0; max-width:20ch; font-size:clamp(28px, 4.6vw, 42px); font-weight:800; line-height:1.08; letter-spacing:-.015em; color:var(--on-navy); text-wrap:balance; }
+.opcoes{ display:grid; gap:16px; grid-template-columns:minmax(0,1fr); }
+@media (min-width:760px){ .opcoes{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:20px; } }
+.opcao{ min-width:0; display:grid; gap:14px; align-content:start; padding:14px; background:var(--card); color:var(--ink); border-radius:18px; box-shadow:var(--shadow); text-decoration:none; transition:transform .16s ease, box-shadow .16s ease; }
+.opcao:hover{ transform:translateY(-2px); box-shadow:0 0 0 3px var(--cyan), var(--shadow); }
+.opcao:active{ transform:translateY(0); }
+.opcao:focus-visible{ outline:3px solid var(--cyan); outline-offset:3px; }
+.opcao-ilu{ display:block; overflow:hidden; background:var(--navy); border-radius:12px; }
+.opcao-ilu svg{ display:block; width:100%; height:auto; }
+.opcao-corpo{ display:grid; gap:6px; padding:0 4px; }
+.opcao-titulo{ font-size:23px; font-weight:800; line-height:1.15; letter-spacing:-.005em; }
+.opcao-texto{ max-width:48ch; font-size:15px; color:var(--muted); }
+.opcao-pe{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:2px 4px 4px; }
+.tg{ display:inline-flex; align-items:center; gap:6px; min-height:30px; padding:0 10px 0 8px; border-radius:999px; background:var(--wash); font-size:13px; font-weight:700; color:var(--ink); }
+.tg i{ font-family:var(--f-tag); font-weight:800; font-size:17px; line-height:1; }
+.tg .ponto{ width:10px; height:10px; border-radius:50%; box-shadow:inset 0 0 0 1px var(--edge); }
+.tg .degrade{ width:30px; height:10px; border-radius:5px; background:linear-gradient(90deg, #89613B, #B99565, #C7B392, #D2D1C0, #D9F1F0); box-shadow:inset 0 0 0 1px var(--edge); }
+.tg.vazio{ background:transparent; box-shadow:inset 0 0 0 1.5px var(--rule-strong); color:var(--muted); font-weight:600; }
+.ir{ margin-left:auto; display:inline-flex; align-items:center; gap:8px; min-height:42px; padding:0 14px 0 16px; border-radius:999px; background:var(--verde); color:var(--navy); font-size:15px; font-weight:800; }
+.ir svg{ width:18px; height:18px; transition:transform .16s ease; }
+.opcao:hover .ir svg{ transform:translateX(3px); }
+
+/* Ilustrações da tela inicial */
+.ilu .vf{ fill:none; stroke:var(--verde); stroke-width:4; stroke-linecap:round; stroke-linejoin:round; }
+.ilu .fita{ fill:var(--card); }
+.ilu .pad{ stroke:var(--edge); stroke-width:1; }
+.ilu .papel{ fill:var(--card); fill-opacity:.92; }
+.ilu .copo{ fill:none; stroke:var(--on-navy); stroke-opacity:.85; stroke-width:3; stroke-linejoin:round; stroke-linecap:round; }
+.ilu .agua{ fill:var(--cyan); fill-opacity:.4; }
+.ilu .superficie{ fill:none; stroke:var(--cyan); stroke-width:2.5; stroke-linecap:round; }
+.ilu .reflexo{ fill:none; stroke:var(--on-navy); stroke-opacity:.45; stroke-width:2.5; stroke-linecap:round; }
+.ilu .gota{ fill:var(--verde); }
+.ilu .scan-linha{ fill:var(--cyan); }
+.ilu .scan{ animation:varrer 3.4s ease-in-out infinite alternate; }
+.ilu .scan.tarde{ animation-delay:-1.7s; }
+@keyframes varrer{ from{ transform:translateY(-34px); } to{ transform:translateY(34px); } }
+
+/* Cabeçalho do scanner */
+.scanner{ display:grid; gap:18px; }
+.barra{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.marca-mini{ display:block; line-height:0; border-radius:8px; }
+.marca-mini img{ display:block; width:clamp(104px, 13vw, 128px); height:auto; }
+.voltar{ display:inline-flex; align-items:center; gap:8px; min-height:42px; padding:0 16px 0 12px; border-radius:999px; background:var(--navy-raise); border:1px solid var(--navy-line); color:var(--on-navy); font-size:15px; font-weight:700; text-decoration:none; }
+.voltar:hover{ border-color:var(--cyan); }
+.voltar svg{ width:18px; height:18px; flex:none; }
+.titulo-modo{ display:flex; align-items:center; gap:14px; min-width:0; }
+.modo-icone{ flex:none; display:grid; place-items:center; width:48px; height:48px; border-radius:14px; background:var(--cyan); color:var(--navy); }
+.modo-icone svg{ width:26px; height:26px; }
+.titulo-modo h1{ margin:0; font-size:clamp(26px, 4vw, 34px); font-weight:800; line-height:1.1; letter-spacing:-.01em; color:var(--on-navy); }
+.sub{ margin:4px 0 0; font-size:14px; color:var(--on-navy-muted); }
+
+/* Grade principal */
+.layout{ display:grid; gap:20px; grid-template-columns:minmax(0,1fr); align-items:start; }
+@media (min-width:940px){ .layout{ grid-template-columns:minmax(0,1.08fr) minmax(0,1fr); } }
+.card{ min-width:0; display:grid; gap:14px; padding:18px; background:var(--card); color:var(--ink); border-radius:16px; box-shadow:var(--shadow); color-scheme:light; --focus:var(--navy); }
+@media (max-width:480px){ .card{ padding:14px; border-radius:14px; } }
+.card-head{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 12px; }
+.card-head h2{ margin:0; font-size:20px; font-weight:800; letter-spacing:-.005em; }
+.head-left{ display:flex; align-items:center; gap:10px; }
+.badge{ display:inline-block; padding:4px 9px; border-radius:999px; background:var(--cyan-soft); color:var(--navy); font-size:11.5px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; line-height:1.2; }
+
+/* Botões */
+.btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:46px; padding:0 16px; border:1.5px solid var(--rule-strong); border-radius:10px; background:var(--card); color:var(--ink); font-size:15.5px; font-weight:800; cursor:pointer; }
+.btn:hover{ border-color:var(--ink); }
+.btn svg{ width:19px; height:19px; flex:none; }
+.btn.verde{ background:var(--verde); border-color:var(--verde); color:var(--navy); }
+.btn.ciano{ background:var(--cyan); border-color:var(--cyan); color:var(--navy); }
+.btn.verde:hover,.btn.ciano:hover{ border-color:var(--navy); }
+.btn.mini{ min-height:38px; padding:0 12px; font-size:14.5px; }
+.btn.mini svg{ width:17px; height:17px; }
+.btn.ghost{ min-height:40px; padding:0 10px; border-color:transparent; background:transparent; color:var(--ink); }
+.btn.ghost:hover{ background:var(--cyan-soft); border-color:transparent; }
+.btn.ajuda{ min-height:38px; padding:0 13px 0 10px; border-color:transparent; background:var(--cyan-soft); color:var(--ink); font-size:14.5px; }
+.btn.ajuda:hover{ border-color:var(--ink); }
+
+/* Vídeo "Como fotografar" */
+.video-modal{ position:fixed; inset:0; z-index:58; display:grid; place-items:center; background:var(--veu);
+  padding-block:max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-bottom, 0px));
+  padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); }
+.video-caixa{ display:grid; gap:10px; width:min(440px, 100%, calc((100vh - 130px) * .8)); width:min(440px, 100%, calc((100dvh - 130px) * .8)); }
+.video-topo{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.video-titulo{ margin:0; font-size:18px; font-weight:800; color:var(--on-navy); }
+.video-fechar{ flex:none; display:grid; place-items:center; width:42px; height:42px; border-radius:50%; border:1px solid var(--navy-line); background:var(--navy-raise); color:var(--on-navy); cursor:pointer; }
+.video-fechar:hover{ border-color:var(--cyan); }
+.video-fechar svg{ width:20px; height:20px; }
+#video{ display:block; width:100%; aspect-ratio:720 / 900; border-radius:16px; background:var(--navy); }
+
+/* Câmera ao vivo (quando o navegador deixa a página usar a câmera) */
+[hidden]{ display:none !important; }
+html.travado, html.travado body{ overflow:hidden; }
+.camera{ position:fixed; inset:0; z-index:59; display:grid; grid-template-rows:auto minmax(0,1fr) auto; gap:12px; background:#000A24;
+  padding-block:max(12px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-bottom, 0px));
+  padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); }
+.camera-topo,.camera-visor,.camera-base{ width:min(760px, 100%); margin:0 auto; }
+.camera-topo{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.camera-titulo{ margin:0; font-size:18px; font-weight:800; color:var(--on-navy); }
+.camera-visor{ position:relative; min-height:0; overflow:hidden; border-radius:18px; background:#000; }
+#camera-video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+.camera-guia{ position:absolute; inset:8% 8% 15%; pointer-events:none; }
+.camera-guia i{ position:absolute; width:36px; height:36px; border:5px solid var(--verde); }
+.camera-guia i:nth-child(1){ top:0; left:0; border-right:0; border-bottom:0; border-top-left-radius:12px; }
+.camera-guia i:nth-child(2){ top:0; right:0; border-left:0; border-bottom:0; border-top-right-radius:12px; }
+.camera-guia i:nth-child(3){ bottom:0; right:0; border-left:0; border-top:0; border-bottom-right-radius:12px; }
+.camera-guia i:nth-child(4){ bottom:0; left:0; border-right:0; border-top:0; border-bottom-left-radius:12px; }
+.camera-dica{ position:absolute; left:50%; bottom:14px; transform:translateX(-50%); max-width:calc(100% - 24px); margin:0; padding:7px 14px; border-radius:999px; background:rgb(0 10 36 / .74); color:var(--white); font-size:14.5px; font-weight:700; text-align:center; }
+.camera-flash{ position:absolute; inset:0; background:#FFFFFF; opacity:0; pointer-events:none; }
+.camera-flash.ativo{ animation:flash .3s ease-out; }
+@keyframes flash{ from{ opacity:.85; } to{ opacity:0; } }
+.camera-estado{ position:absolute; inset:0; display:grid; place-content:center; justify-items:center; gap:10px; padding:24px; text-align:center; background:#000A24; color:var(--on-navy); }
+.camera-estado p{ margin:0; max-width:36ch; }
+.camera-estado .t{ font-size:19px; font-weight:800; }
+.camera-estado .s{ font-size:15px; line-height:1.45; color:var(--on-navy-muted); }
+.camera-estado .s b{ color:var(--on-navy); }
+.camera-estado .botoes{ display:grid; gap:10px; width:min(300px, 100%); margin-top:8px; }
+.camera-base{ display:grid; grid-template-columns:1fr auto 1fr; align-items:center; }
+.camera-disparo{ grid-column:2; display:grid; place-items:center; width:76px; height:76px; padding:5px; border:4px solid var(--white); border-radius:50%; background:transparent; cursor:pointer; }
+.camera-disparo span{ display:block; width:100%; height:100%; border-radius:50%; background:var(--white); transition:transform .12s; }
+.camera-disparo:not(:disabled):active span{ transform:scale(.9); }
+.camera-disparo:disabled{ opacity:.35; cursor:default; }
+.camera-girar{ grid-column:1; justify-self:start; display:grid; place-items:center; width:48px; height:48px; border-radius:50%; border:1px solid var(--navy-line); background:var(--navy-raise); color:var(--on-navy); cursor:pointer; }
+.camera-girar svg{ width:24px; height:24px; }
+.camera :focus-visible{ outline-color:var(--verde); }
+/* Aviso quando a câmera ou a galeria não abrem (ex.: dentro do app do Claude no celular) */
+.aviso-app{ display:grid; gap:9px; padding:13px 14px 14px; border-radius:12px; background:var(--aviso-soft); color:var(--ink); font-size:14.5px; line-height:1.45; }
+.aviso-app p{ margin:0; }
+.aviso-app b{ font-weight:800; }
+.aviso-app .aviso-app-t{ color:var(--aviso); font-size:15.5px; font-weight:800; }
+.aviso-app .btn{ justify-self:start; background:var(--card); }
+.aviso-app .aviso-ou{ margin-top:3px; padding-top:11px; border-top:1px solid rgb(138 101 0 / .25); color:var(--muted); font-size:14px; }
+.link-aqua{ width:100%; min-height:42px; padding:0 10px; border:1px solid var(--rule-strong); border-radius:8px; background:var(--card); color:var(--ink); font:inherit; font-size:16px; }
+.colar{ display:block; min-height:54px; padding:15px 12px; border:1.5px dashed var(--aviso); border-radius:10px; background:var(--card); color:var(--ink); font-size:16px; line-height:1.3; text-align:center; overflow:hidden; cursor:text; -webkit-user-select:text; user-select:text; }
+.colar:empty::before{ content:attr(data-dica); color:var(--aviso); font-weight:700; pointer-events:none; }
+.colar:focus{ outline:2px solid var(--cyan); outline-offset:2px; }
+.colar img{ max-height:40px; }
+
+/* Fita compatível (só na aba da fita, antes da foto) */
+.compat{ display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:14px; padding:12px 14px; border-radius:12px; background:var(--wash); box-shadow:inset 0 0 0 1px var(--rule); }
+.compat-fita{ display:block; width:112px; height:auto; }
+.compat-texto p{ margin:0; }
+.compat-texto .compat-rotulo{ font-size:11.5px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); }
+.compat-texto .compat-nome{ margin-top:2px; font-size:16px; font-weight:800; color:var(--ink); }
+.compat-texto .compat-desc{ margin-top:3px; font-size:13.5px; line-height:1.4; color:var(--muted); }
+@media (max-width:400px){ .compat{ grid-template-columns:1fr; gap:10px; } }
+
+/* Foto */
+.capture{ position:relative; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.vh{ position:absolute !important; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; opacity:0; }
+.visor{ display:grid; }
+.stage{ position:relative; display:grid; place-items:center; min-height:180px; overflow:hidden; background:var(--navy); border-radius:12px 12px 0 0; }
+.stage canvas{ display:block; max-width:100%; cursor:crosshair; touch-action:manipulation; }
+.stage.drop{ outline:2px dashed var(--cyan); outline-offset:-8px; }
+
+/* Veredito em 5 níveis, de totalmente fora a totalmente dentro dos padrões (logo abaixo da foto) */
+.veredito{ --v-cor:var(--idle); --v-soft:var(--idle-soft); display:grid; grid-template-columns:auto minmax(0,1fr); align-items:start; gap:12px; padding:14px 16px 15px; border-radius:0 0 12px 12px; background:var(--v-soft); color:var(--ink); }
+.veredito[data-estado="n1"]{ --v-cor:var(--n1); --v-soft:var(--n1-soft); }
+.veredito[data-estado="n2"]{ --v-cor:var(--n2); --v-soft:var(--n2-soft); }
+.veredito[data-estado="n3"]{ --v-cor:var(--n3); --v-soft:var(--n3-soft); }
+.veredito[data-estado="n4"]{ --v-cor:var(--n4); --v-soft:var(--n4-soft); }
+.veredito[data-estado="n5"]{ --v-cor:var(--n5); --v-soft:var(--n5-soft); }
+.veredito[data-estado="falha"]{ --v-cor:var(--idle); --v-soft:var(--idle-soft); }
+.ver-icone{ display:grid; place-items:center; width:42px; height:42px; border-radius:50%; background:var(--v-cor); color:var(--white); }
+.ver-icone svg{ width:24px; height:24px; }
+/* medidor de 5 níveis */
+.nivel{ margin-top:12px; display:grid; gap:6px; }
+.nivel-barra{ display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); align-items:center; gap:5px; }
+.nivel-barra span{ height:10px; border-radius:999px; opacity:.28; }
+.nivel-barra span:nth-child(1){ background:var(--n1-fill); }
+.nivel-barra span:nth-child(2){ background:var(--n2-fill); }
+.nivel-barra span:nth-child(3){ background:var(--n3-fill); }
+.nivel-barra span:nth-child(4){ background:var(--n4-fill); }
+.nivel-barra span:nth-child(5){ background:var(--n5-fill); }
+.nivel-barra span.atual{ height:16px; opacity:1; box-shadow:0 0 0 2px var(--card), 0 0 0 3.5px var(--v-cor); }
+.nivel-pontas{ display:flex; justify-content:space-between; gap:8px; font-size:12px; font-weight:700; color:var(--muted); }
+.ver-texto{ min-width:0; padding-top:1px; }
+.ver-titulo{ margin:0; display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; font-size:22px; font-weight:800; line-height:1.15; letter-spacing:-.005em; }
+.ver-titulo{ color:var(--v-cor); }
+.ver-sub{ margin:3px 0 0; font-size:15px; }
+.ver-dicas{ margin:10px 0 0; padding:10px 0 0; list-style:none; display:grid; gap:6px; border-top:1px solid var(--edge); font-size:14.5px; }
+.ver-dicas b{ font-weight:800; }
+.ver-nota{ margin:8px 0 0; font-size:13px; color:var(--muted); }
+/* Antes da primeira foto: só a parte de scan */
+.vazio-scan{ display:grid; justify-items:center; gap:4px; width:100%; padding:16px 16px 22px; border:0; border-radius:12px; background:var(--navy); color:var(--on-navy); font:inherit; text-align:center; cursor:pointer; }
+.vazio-scan:focus-visible{ outline:3px solid var(--cyan); outline-offset:2px; }
+.vazio-ilu{ display:block; width:min(100%, 440px); }
+.vazio-ilu svg{ display:block; width:100%; height:auto; }
+.vazio-titulo{ margin-top:8px; font-size:20px; font-weight:800; }
+.vazio-texto{ font-size:14.5px; color:var(--on-navy-muted); }
+.layout.so-scan{ grid-template-columns:minmax(0,1fr); max-width:640px; }
+.visor.drop{ outline:2px dashed var(--cyan); outline-offset:4px; border-radius:14px; }
+
+.guide{ margin:0; padding:14px 0 0; list-style:none; counter-reset:passo; display:grid; gap:10px; border-top:1px solid var(--rule); font-size:14px; color:var(--muted); }
+@media (min-width:600px){ .guide{ grid-template-columns:repeat(3, minmax(0,1fr)); gap:14px; } }
+.guide li{ counter-increment:passo; display:grid; grid-template-columns:22px minmax(0,1fr); align-items:start; gap:9px; }
+.guide li::before{ content:counter(passo); display:grid; place-items:center; width:22px; height:22px; border-radius:50%; background:var(--verde); color:var(--navy); font-size:13px; font-weight:800; line-height:1; }
+
+/* Resultado */
+.sum{ display:grid; gap:6px; }
+.summary{ margin:0; font-size:15.5px; font-weight:600; line-height:1.4; text-wrap:pretty; }
+
+/* Placar do resultado: anel com os 4 parâmetros (verde = dentro, amarelo = fora), a conta, o nível
+   e um bloco por parâmetro (tocar leva à linha dele) */
+.sum{ display:grid; gap:12px; }
+.placar{ display:grid; gap:10px; }
+.placar:empty{ display:none; }
+.placar-topo{ display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:16px; padding:14px 16px; border-radius:14px; background:var(--wash); }
+.anel-box{ position:relative; width:92px; height:92px; }
+.anel{ display:block; width:100%; height:100%; }
+.anel path{ fill:none; stroke-width:11; stroke:var(--rule); }
+.anel path[data-estado="ideal"]{ stroke:var(--n5-fill); }
+.anel path[data-estado="baixo"],.anel path[data-estado="alto"]{ stroke:var(--n3-fill); }
+.anel-centro{ position:absolute; inset:0; margin:0; display:grid; place-items:center; line-height:1; font-variant-numeric:tabular-nums; }
+.anel-centro > span{ white-space:nowrap; }
+.anel-centro b{ font-size:30px; font-weight:800; letter-spacing:-.02em; }
+.anel-centro i{ font-style:normal; font-size:15px; font-weight:700; color:var(--muted); }
+.placar-txt{ min-width:0; display:grid; gap:8px; justify-items:start; }
+.placar-rot{ margin:0; font-size:18px; font-weight:800; line-height:1.2; text-wrap:balance; }
+.placar-nivel{ margin:0; display:inline-flex; align-items:center; gap:7px; padding:4px 11px; border-radius:999px; font-size:13.5px; font-weight:800; color:var(--nc); background:var(--ns); }
+.placar-nivel[data-nivel="n1"]{ --nc:var(--n1); --ns:var(--n1-soft); }
+.placar-nivel[data-nivel="n2"]{ --nc:var(--n2); --ns:var(--n2-soft); }
+.placar-nivel[data-nivel="n3"]{ --nc:var(--n3); --ns:var(--n3-soft); }
+.placar-nivel[data-nivel="n4"]{ --nc:var(--n4); --ns:var(--n4-soft); }
+.placar-nivel[data-nivel="n5"]{ --nc:var(--n5); --ns:var(--n5-soft); }
+.placar-amostra{ flex:none; width:16px; height:16px; margin-left:-3px; border-radius:50%; box-shadow:inset 0 0 0 1px var(--edge); }
+.placar-itens{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:8px; }
+@media (max-width:560px){ .placar-itens{ grid-template-columns:repeat(2, minmax(0,1fr)); } }
+.item{ min-width:0; min-height:44px; display:grid; gap:4px; justify-items:start; padding:10px 12px; border:0; border-radius:12px; background:var(--idle-soft); color:var(--ink); text-align:left; cursor:pointer; }
+.item[data-estado="ideal"]{ background:var(--ok-soft); }
+.item[data-estado="baixo"],.item[data-estado="alto"]{ background:var(--aviso-soft); }
+.item:hover{ box-shadow:inset 0 0 0 1.5px var(--edge); }
+.item-tag{ font-family:var(--f-tag); font-style:italic; font-weight:800; font-size:22px; line-height:.9; }
+.item-val{ max-width:100%; overflow:hidden; text-overflow:ellipsis; font-size:19px; font-weight:800; line-height:1.15; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.item-val small{ margin-left:3px; font-size:12px; font-weight:600; color:var(--muted); }
+.item-est{ display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--idle); }
+.item-est::before{ content:""; width:7px; height:7px; border-radius:50%; background:currentColor; }
+.item[data-estado="ideal"] .item-est{ color:var(--ok); }
+.item[data-estado="baixo"] .item-est,.item[data-estado="alto"] .item-est{ color:var(--aviso); }
+.param.realce{ animation:realce 1.6s ease-out; border-radius:10px; }
+@keyframes realce{ 0%,35%{ background:var(--cyan-soft); box-shadow:0 0 0 8px var(--cyan-soft); } 100%{ background:transparent; box-shadow:0 0 0 8px transparent; } }
+
+.rows{ display:grid; gap:16px; }
+.param{ min-width:0; display:grid; gap:10px; padding-top:16px; border-top:1px solid var(--rule); }
+.param-head{ display:grid; grid-template-columns:52px minmax(0,1fr) auto; align-items:center; gap:12px; }
+.tag{ font-family:var(--f-tag); font-style:italic; font-weight:800; font-size:34px; line-height:.85; }
+.pname{ min-width:0; }
+.pname h3{ margin:0; font-size:16px; font-weight:800; line-height:1.2; }
+.pname p{ margin:3px 0 0; font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.reading{ display:grid; justify-items:end; gap:5px; }
+.val{ font-size:25px; font-weight:800; line-height:1; letter-spacing:-.01em; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.val small{ margin-left:4px; font-size:14px; font-weight:600; letter-spacing:0; color:var(--muted); }
+.chip{ padding:3px 8px; border-radius:999px; font-size:11.5px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; line-height:1.25; white-space:nowrap; }
+.chip.ideal{ color:var(--ok); background:var(--ok-soft); }
+.chip.baixo,.chip.alto{ color:var(--aviso); background:var(--aviso-soft); }
+.chip.pendente{ color:var(--idle); background:var(--idle-soft); }
+
+.scale{ position:relative; padding-top:30px; }
+.ideal-box{ position:absolute; top:24px; bottom:0; border:2px solid var(--cyan); border-radius:8px; background:var(--cyan-soft); }
+.sw-row,.lb-row{ position:relative; display:grid; grid-template-columns:repeat(var(--n), minmax(0,1fr)); }
+.sw{ height:30px; margin:6px 5px 0; border-radius:5px; box-shadow:inset 0 0 0 1px var(--edge); }
+.lb{ padding:5px 0 7px; text-align:center; font-size:12.5px; color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; }
+.lb.in{ color:var(--ink); font-weight:800; }
+.pin{ position:absolute; top:0; z-index:2; width:20px; display:flex; flex-direction:column; align-items:center; transform:translateX(-50%); pointer-events:none; }
+.pin-dot{ width:20px; height:20px; border-radius:50%; border:2px solid var(--card); box-shadow:0 0 0 1.5px var(--ink); }
+.pin-stem{ width:2px; height:14px; margin-top:-1px; border-radius:1px; background:var(--ink); }
+
+.meta{ margin:0; display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; font-size:13.5px; color:var(--muted); }
+.meta .dot{ width:14px; height:14px; border-radius:4px; box-shadow:inset 0 0 0 1px var(--edge); }
+.meta code{ font-family:var(--f-mono); font-size:12.5px; color:var(--ink); }
+.meta.unsure{ color:var(--aviso); }
+
+.sample{ display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:16px; padding-top:16px; border-top:1px solid var(--rule); }
+.sample-sw{ width:88px; height:88px; border-radius:12px; box-shadow:inset 0 0 0 1px var(--edge); background:repeating-linear-gradient(45deg, var(--idle-soft) 0 6px, transparent 6px 12px); }
+.eyebrow{ margin:0; font-size:12px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:var(--muted); }
+.hex{ margin:4px 0 2px; font-family:var(--f-mono); font-size:22px; color:var(--ink); overflow-wrap:anywhere; }
+.rgb{ margin:0; font-size:14px; color:var(--muted); font-variant-numeric:tabular-nums; }
+.pending{ display:grid; gap:6px; padding:14px 16px; border:1.5px dashed var(--rule-strong); border-radius:12px; }
+.pending h3{ margin:0; font-size:16px; font-weight:800; }
+.pending p{ margin:0; max-width:62ch; font-size:14.5px; color:var(--muted); }
+
+.copy-fallback{ width:100%; padding:10px; border:1px solid var(--rule-strong); border-radius:8px; background:var(--wash); color:var(--ink); font-family:var(--f-mono); font-size:13px; resize:vertical; }
+.note{ margin:0; padding-top:12px; border-top:1px solid var(--rule); max-width:72ch; font-size:13px; color:var(--muted); }
+
+/* Rodapé: faixa ciano da marca com onda no topo, sempre no pé da tela */
+.rodape{
+  --onda:clamp(26px, 3.2vw, 42px);
+  --on-cyan-muted:#064466;
+  flex:none; position:relative;
+  margin-top:var(--onda);
+  background:var(--cyan); color:var(--navy);
+  padding-top:22px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom:calc(18px + env(safe-area-inset-bottom, 0px));
+  margin-bottom:calc(-1 * env(safe-area-inset-bottom, 0px));
+}
+.rodape-onda{ position:absolute; left:0; bottom:calc(100% - 1px); display:block; width:100%; height:var(--onda); fill:var(--cyan); }
+.rodape-onda .atras{ opacity:.38; }
+.rodape-dentro{ max-width:1148px; margin:0 auto; display:grid; gap:22px; }
+.rodape-topo{ display:grid; }
+.rodape-marca img{ display:block; width:116px; height:auto; }
+.rodape-marca p{ margin:10px 0 0; max-width:30ch; font-size:15px; font-weight:600; line-height:1.4; color:var(--on-cyan-muted); }
+.rodape-base{ display:grid; gap:5px; padding-top:14px; border-top:1.5px solid rgb(0 16 62 / .2); font-size:13.5px; font-weight:600; line-height:1.45; color:var(--on-cyan-muted); }
+.rodape-base p{ margin:0; }
+.rodape-base strong{ font-weight:800; color:var(--navy); }
+.rodape-copy{ font-weight:800; color:var(--navy); }
+.rodape-base .rodape-aviso{ margin-top:6px; font-size:12.5px; }
+
+.toast{ position:fixed; z-index:20; left:50%; bottom:calc(20px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%); max-width:calc(100% - 32px); padding:11px 16px; border-radius:10px; background:var(--cyan); color:var(--navy); font-size:15px; font-weight:800; box-shadow:var(--shadow); }
+
+/* Tela de carregamento: a gota cai no lugar e as letras enchem de água */
+.splash{ position:fixed; inset:0; z-index:60; display:grid; place-items:center; background:var(--navy); cursor:pointer; transition:opacity .45s ease, visibility .45s; }
+.splash.saindo{ opacity:0; visibility:hidden; }
+.splash.entrando{ animation:aparecer .26s ease backwards; } /* ao fazer um novo teste, a tela entra suave */
+@keyframes aparecer{ from{ opacity:0; } }
+.splash-centro{ display:grid; justify-items:center; gap:28px; transition:transform .45s ease; }
+.splash.saindo .splash-centro{ transform:scale(1.04); }
+.splash-logo{ position:relative; width:min(240px, 62vw); aspect-ratio:640 / 286; }
+.splash-logo img{ position:absolute; inset:0; display:block; width:100%; height:100%; max-width:none; }
+.splash-logo .vazio{ opacity:.14; }
+.splash-logo .cheio{ clip-path:inset(100% 0 0 0); animation:encher .85s .6s cubic-bezier(.45,.05,.3,1) forwards; }
+.splash-logo .gota{ opacity:0; transform-origin:93.2% 43%; animation:cair .55s cubic-bezier(.55,0,.9,.4) forwards, assentar .4s .55s ease-out; }
+.splash-barra{ width:min(168px, 46vw); height:4px; overflow:hidden; border-radius:999px; background:var(--navy-raise); }
+.splash-barra i{ display:block; height:100%; border-radius:inherit; background:var(--cyan); transform-origin:left center; transform:scaleX(0); animation:carregar 1.5s .15s cubic-bezier(.3,.1,.2,1) forwards; }
+/* na abertura do site a tela fica um pouco mais: as letras enchem e a barra corre mais devagar */
+#splash .splash-logo .cheio{ animation-duration:1.3s; animation-delay:.7s; }
+#splash .splash-barra i{ animation-duration:2.45s; }
+.splash-texto{ margin:-16px 0 0; font-size:13px; letter-spacing:.04em; color:var(--on-navy-muted); }
+@keyframes cair{ 0%{ opacity:0; transform:translateY(-190%); } 20%{ opacity:1; } 100%{ opacity:1; transform:translateY(0); } }
+@keyframes assentar{ 0%{ transform:scale(1.14, .8); } 55%{ transform:scale(.95, 1.06); } 100%{ transform:scale(1, 1); } }
+@keyframes encher{ to{ clip-path:inset(0 0 0 0); } }
+@keyframes carregar{ to{ transform:scaleX(1); } }
+
+/* Tela de análise: foto nova → carregamento → resultado */
+.analise{ position:fixed; inset:0; z-index:55; display:grid; place-items:center; overflow:auto; cursor:pointer; background:var(--navy); transition:opacity .4s ease, visibility .4s;
+  padding-block:max(24px, env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-bottom, 0px));
+  padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); }
+.analise.saindo{ opacity:0; visibility:hidden; }
+.analise-centro{ display:grid; justify-items:center; gap:16px; width:min(520px, 100%); }
+.analise-foto{ position:relative; isolation:isolate; overflow:hidden; line-height:0; border-radius:14px; background:var(--navy-raise); box-shadow:0 0 0 1px var(--navy-line); }
+.analise-foto canvas{ display:block; max-width:100%; }
+.analise-foto::after{ content:""; position:absolute; inset:0; z-index:0; background:linear-gradient(rgb(0 16 62 / .12), rgb(0 16 62 / .3)); }
+.analise-varre{ position:absolute; inset:0; z-index:1; animation:varrer-foto 2.1s ease-in-out infinite alternate; }
+.analise-varre::before{ content:""; position:absolute; left:4%; right:4%; top:calc(50% - 24px); height:48px; background:linear-gradient(rgb(23 225 225 / 0), rgb(23 225 225 / .3), rgb(23 225 225 / 0)); }
+.analise-varre::after{ content:""; position:absolute; left:4%; right:4%; top:calc(50% - 1.5px); height:3px; border-radius:2px; background:var(--cyan); box-shadow:0 0 12px 2px rgb(23 225 225 / .7); }
+@keyframes varrer-foto{ from{ transform:translateY(-40%); } to{ transform:translateY(40%); } }
+.analise-canto{ position:absolute; z-index:2; width:26px; height:26px; border:4px solid var(--verde); }
+.analise-canto.a{ top:10px; left:10px; border-right:0; border-bottom:0; border-radius:8px 0 0 0; }
+.analise-canto.b{ top:10px; right:10px; border-left:0; border-bottom:0; border-radius:0 8px 0 0; }
+.analise-canto.c{ bottom:10px; right:10px; border-left:0; border-top:0; border-radius:0 0 8px 0; }
+.analise-canto.d{ bottom:10px; left:10px; border-right:0; border-top:0; border-radius:0 0 0 8px; }
+.analise-titulo{ margin:8px 0 0; font-size:22px; font-weight:800; letter-spacing:-.005em; color:var(--on-navy); text-align:center; }
+.analise-passos{ margin:0; padding:0; list-style:none; display:grid; gap:11px; }
+.analise-passos li{ display:flex; align-items:center; gap:11px; font-size:15px; color:var(--on-navy-muted); opacity:.5; transition:opacity .25s ease, color .25s ease; }
+.analise-passos li::before{ content:""; flex:none; width:20px; height:20px; border-radius:50%; border:2px solid var(--navy-line); }
+.analise-passos li.ativo, .analise-passos li.feito{ opacity:1; color:var(--on-navy); }
+.analise-passos li.ativo::before{ border-color:var(--cyan); border-right-color:transparent; animation:girar .8s linear infinite; }
+.analise-passos li.feito::before{ border-color:var(--cyan); background:var(--cyan) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5' fill='none' stroke='%2300103E' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 13px no-repeat; }
+@keyframes girar{ to{ transform:rotate(360deg); } }
+
+/* o resultado chega depois da análise */
+.veredito.chegou{ animation:chegou .55s cubic-bezier(.2,.8,.3,1.15) both; }
+.veredito.chegou .ver-icone{ animation:pulo .6s .12s cubic-bezier(.2,.9,.3,1.45) both; }
+@keyframes chegou{ from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:none; } }
+@keyframes pulo{ from{ transform:scale(.2); } to{ transform:scale(1); } }
+
+@media (prefers-reduced-motion: reduce){ *,*::before,*::after{ animation:none !important; transition:none !important; } }
+@media (prefers-reduced-motion: reduce){
+  .splash-logo .gota{ opacity:1; }
+  .splash-logo .cheio{ clip-path:none; }
+  .splash-barra i{ transform:none; }
+}
+</style>
+
+<div class="splash" id="splash" aria-hidden="true">
+  <div class="splash-centro">
+    <div class="splash-logo">
+      <img class="vazio" src="aqua-texto.png" alt="" width="640" height="286">
+      <img class="cheio" src="aqua-texto.png" alt="" width="640" height="286">
+      <img class="gota" src="aqua-gota.png" alt="" width="640" height="286">
+    </div>
+    <div class="splash-barra"><i></i></div>
+    <p class="splash-texto">Preparando o scanner</p>
+  </div>
+</div>
+<script>if (/^#(fita|agua)$/.test(location.hash)) document.getElementById("splash").remove();</script>
+
+<div class="app">
+  <main class="inicio" id="tela-inicio" aria-labelledby="inicio-titulo">
+    <header class="inicio-topo">
+      <h1><img src="aqua-logo.png" alt="Aqua" width="640" height="286"></h1>
+      <p class="tagline">Análise da potabilidade da água pela câmera do celular.</p>
+    </header>
+    <h2 class="pergunta" id="inicio-titulo" tabindex="-1">Como você vai testar a água?</h2>
+    <div class="opcoes">
+      <a class="opcao" href="#fita" aria-labelledby="op-fita-titulo" aria-describedby="op-fita-texto">
+        <span class="opcao-ilu" aria-hidden="true">
+          <svg class="ilu" viewBox="0 0 320 150">
+            <defs><linearGradient id="brilho-fita" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#17E1E1" stop-opacity="0"/><stop offset=".5" stop-color="#17E1E1" stop-opacity=".32"/><stop offset="1" stop-color="#17E1E1" stop-opacity="0"/></linearGradient></defs>
+            <path class="vf" d="M26 42V26h16M278 26h16v16M294 108v16h-16M42 124H26v-16"/>
+            <g transform="rotate(-8 160 75)">
+              <rect class="fita" x="44" y="60" width="232" height="30" rx="6"/>
+              <rect class="pad" x="146" y="64" width="22" height="22" rx="3" fill="#4E7BD1"/>
+              <rect class="pad" x="174" y="64" width="22" height="22" rx="3" fill="#F9B4A5"/>
+              <rect class="pad" x="202" y="64" width="22" height="22" rx="3" fill="#74B9B3"/>
+              <rect class="pad" x="230" y="64" width="22" height="22" rx="3" fill="#C7F3E6"/>
+            </g>
+            <g class="scan"><rect x="34" y="64" width="252" height="22" fill="url(#brilho-fita)"/><rect class="scan-linha" x="34" y="73.75" width="252" height="2.5" rx="1.25"/></g>
+          </svg>
+        </span>
+        <span class="opcao-corpo">
+          <span class="opcao-titulo" id="op-fita-titulo">Fita de teste</span>
+          <span class="opcao-texto" id="op-fita-texto">Mergulhe a fita 4 em 1, tire uma foto e descubra se a água está dentro dos padrões: cloro, alcalinidade, pH e dureza total.</span>
+        </span>
+        <span class="opcao-pe">
+          <span class="tg"><span class="ponto" style="background:#C7F3E6"></span><i>Cl</i></span>
+          <span class="tg"><span class="ponto" style="background:#74B9B3"></span><i>Alk</i></span>
+          <span class="tg"><span class="ponto" style="background:#F9B4A5"></span><i>pH</i></span>
+          <span class="tg"><span class="ponto" style="background:#4E7BD1"></span><i>DT</i></span>
+          <span class="ir">Começar <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6.5l5.5 5.5-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </span>
+      </a>
+      <a class="opcao" href="#agua" aria-labelledby="op-agua-titulo" aria-describedby="op-agua-texto">
+        <span class="opcao-ilu" aria-hidden="true">
+          <svg class="ilu" viewBox="0 0 320 150">
+            <defs><linearGradient id="brilho-agua" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#17E1E1" stop-opacity="0"/><stop offset=".5" stop-color="#17E1E1" stop-opacity=".32"/><stop offset="1" stop-color="#17E1E1" stop-opacity="0"/></linearGradient></defs>
+            <path class="vf" d="M26 42V26h16M278 26h16v16M294 108v16h-16M42 124H26v-16"/>
+            <ellipse class="papel" cx="160" cy="123" rx="66" ry="7"/>
+            <path class="agua" d="M128.3 66H191.7L186 121H134Z"/>
+            <path class="superficie" d="M128.6 66q7.85-4.5 15.7 0t15.7 0 15.7 0 15.7 0"/>
+            <path class="copo" d="M126 44l8 77h52l8-77"/>
+            <path class="reflexo" d="M137.5 56l4.6 52"/>
+            <path class="gota" d="M160 8c2.6 6.2 8.4 10.2 8.4 15.6a8.4 8.4 0 0 1-16.8 0C151.6 18.2 157.4 14.2 160 8z"/>
+            <g class="scan tarde"><rect x="34" y="64" width="252" height="22" fill="url(#brilho-agua)"/><rect class="scan-linha" x="34" y="73.75" width="252" height="2.5" rx="1.25"/></g>
+          </svg>
+        </span>
+        <span class="opcao-corpo">
+          <span class="opcao-titulo" id="op-agua-titulo">Água direta</span>
+          <span class="opcao-texto" id="op-agua-texto">Fotografe a água num copo transparente, sobre papel branco, e veja pela cor se ela está dentro dos padrões.</span>
+        </span>
+        <span class="opcao-pe">
+          <span class="tg"><span class="degrade" aria-hidden="true"></span>Barrenta → limpa</span>
+          <span class="ir">Começar <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6.5l5.5 5.5-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </span>
+      </a>
+    </div>
+  </main>
+
+  <main class="scanner" id="tela-scanner" hidden>
+    <header class="barra">
+      <a class="marca-mini" href="#inicio" aria-label="Aqua, ir para o início"><img src="aqua-logo.png" alt="" width="640" height="286"></a>
+      <a class="voltar" href="#inicio">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H6M11 6.5 5.5 12l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Início
+      </a>
+    </header>
+    <div class="titulo-modo">
+      <span class="modo-icone" id="modo-icone" aria-hidden="true"></span>
+      <div>
+        <h1 id="modo-titulo" tabindex="-1">Fita de teste</h1>
+        <p class="sub" id="modo-sub">Fita 4 em 1 · Cloro livre · Alcalinidade · pH · Dureza total</p>
+      </div>
+    </div>
+
+    <div class="layout so-scan">
+    <section class="card" aria-labelledby="foto-titulo">
+      <div class="card-head">
+        <div class="head-left">
+          <h2 id="foto-titulo">Foto da fita</h2>
+        </div>
+        <button type="button" class="btn ajuda" id="btn-video">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 8.4v7.2l5.8-3.6z" fill="currentColor"/></svg>
+          Como fotografar
+        </button>
+      </div>
+      <div class="compat" id="compat" hidden>
+        <svg class="compat-fita" viewBox="0 0 132 30" aria-hidden="true">
+          <rect x="1" y="5" width="130" height="20" rx="3" fill="#FBF8F1" stroke="#CDD3DF"/>
+          <g stroke="rgb(0 16 62 / .16)" stroke-width="1">
+            <rect x="57.5" y="8.5" width="13" height="13" rx="1.5" fill="#D4E2C7"/>
+            <rect x="76.5" y="8.5" width="13" height="13" rx="1.5" fill="#FBA64F"/>
+            <rect x="95.5" y="8.5" width="13" height="13" rx="1.5" fill="#EAB021"/>
+            <rect x="114.5" y="8.5" width="13" height="13" rx="1.5" fill="#FEFAD8" stroke="#C9BE8E"/>
+          </g>
+        </svg>
+        <div class="compat-texto">
+          <p class="compat-rotulo">Fita compatível</p>
+          <p class="compat-nome">Fita 4 em 1</p>
+          <p class="compat-desc">Cloro livre, alcalinidade, pH e dureza total. Outras fitas não são lidas.</p>
+        </div>
+      </div>
+      <div class="capture">
+        <button type="button" class="btn verde" id="btn-camera">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5h3l1.6-2.3h6.8L17 7.5h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-10a1 1 0 0 1 1-1z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13.2" r="3.6" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+          Câmera
+        </button>
+        <button type="button" class="btn ciano" id="btn-galeria">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 16.5l5-5 4 4 2.5-2.5 5.5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="16" cy="9" r="1.6" fill="currentColor"/></svg>
+          Galeria
+        </button>
+        <input type="file" id="in-camera" class="vh" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true">
+        <input type="file" id="in-galeria" class="vh" accept="image/*" tabindex="-1" aria-hidden="true">
+      </div>
+      <div class="aviso-app" id="aviso-app" hidden>
+        <p class="aviso-app-t" id="aviso-app-t" role="status"></p>
+        <p>Abra o Aqua no navegador (Chrome ou Safari), onde tudo funciona.</p>
+        <button type="button" class="btn mini" id="btn-copiar-link">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.2 13.8a4.2 4.2 0 0 0 6 0l3-3a4.2 4.2 0 0 0-6-6l-1.3 1.3M13.8 10.2a4.2 4.2 0 0 0-6 0l-3 3a4.2 4.2 0 0 0 6 6l1.3-1.3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Copiar o link do Aqua
+        </button>
+        <input type="text" class="link-aqua" id="link-aqua" readonly hidden aria-label="Link do Aqua">
+        <p class="aviso-ou">Ou, sem sair do app: copie a foto na galeria (em geral fica em <b>Compartilhar</b> → <b>Copiar</b>), depois toque e segure no quadro abaixo e escolha <b>Colar</b>.</p>
+        <div class="colar" id="colar" contenteditable="true" role="textbox" aria-label="Colar uma foto aqui" inputmode="none" spellcheck="false" data-dica="Toque e segure aqui e escolha Colar"></div>
+      </div>
+      <button type="button" class="btn verde" id="btn-novo" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4h-4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Fazer novo teste
+      </button>
+      <div class="visor">
+        <button type="button" class="vazio-scan" id="vazio-scan">
+          <span class="vazio-ilu" id="vazio-ilu" aria-hidden="true"></span>
+          <span class="vazio-titulo" id="vazio-titulo">Tire uma foto da fita</span>
+          <span class="vazio-texto" id="vazio-texto">Os blocos são lidos automaticamente.</span>
+        </button>
+        <div class="stage" id="stage" hidden>
+          <canvas id="cv" role="img" aria-label="Foto com os blocos lidos marcados"></canvas>
+        </div>
+        <div class="veredito" id="veredito" data-estado="pendente" aria-live="polite" hidden></div>
+      </div>
+      <ol class="guide" id="guia"></ol>
+    </section>
+
+    <section class="card" id="card-resultado" aria-labelledby="res-titulo" hidden>
+      <div class="card-head">
+        <h2 id="res-titulo">Resultado</h2>
+        <button type="button" class="btn ciano mini" id="btn-copiar">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M16 5.5V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          Copiar leitura
+        </button>
+      </div>
+      <div class="sum" aria-live="polite">
+        <div class="placar" id="placar"></div>
+        <p class="summary" id="resumo"></p>
+      </div>
+      <div class="rows" id="linhas"></div>
+      <textarea id="copia" class="copy-fallback" rows="7" readonly hidden aria-label="Texto da leitura para copiar"></textarea>
+      <p class="note" id="nota"></p>
+    </section>
+    </div>
+  </main>
+
+</div>
+<footer class="rodape">
+  <svg class="rodape-onda" viewBox="0 0 1440 48" preserveAspectRatio="none" aria-hidden="true">
+    <path class="atras" d="M0 18C300 36 560 36 820 18S1240 2 1440 20V48H0Z"/>
+    <path d="M0 28C240 8 480 8 720 26S1200 44 1440 22V48H0Z"/>
+  </svg>
+  <div class="rodape-dentro">
+    <div class="rodape-topo">
+      <div class="rodape-marca">
+        <img src="aqua-texto-navy.png" alt="Aqua" width="576" height="250">
+        <p>Análise da potabilidade da água pela câmera do celular.</p>
+      </div>
+    </div>
+    <div class="rodape-base">
+      <p class="rodape-copy">© 2026 AquaScan. Todos os direitos reservados.</p>
+      <p>Desenvolvido pelos alunos da <strong>3ª série 03</strong> da <strong>Escola Estadual de Tempo Integral Carauari</strong>.</p>
+      <p class="rodape-aviso">Resultados estimados pela câmera. Não substituem a análise de um laboratório.</p>
+    </div>
+  </div>
+</footer>
+<div class="analise" id="analise" role="status" aria-live="polite" hidden>
+  <div class="analise-centro">
+    <div class="analise-foto">
+      <canvas id="analise-cv" aria-hidden="true"></canvas>
+      <span class="analise-varre" aria-hidden="true"></span>
+      <span class="analise-canto a" aria-hidden="true"></span>
+      <span class="analise-canto b" aria-hidden="true"></span>
+      <span class="analise-canto c" aria-hidden="true"></span>
+      <span class="analise-canto d" aria-hidden="true"></span>
+    </div>
+    <p class="analise-titulo" id="analise-titulo">Analisando a fita</p>
+    <ol class="analise-passos" id="analise-passos"></ol>
+  </div>
+</div>
+<div class="video-modal" id="video-modal" role="dialog" aria-modal="true" aria-labelledby="video-titulo" hidden>
+  <div class="video-caixa">
+    <div class="video-topo">
+      <p class="video-titulo" id="video-titulo">Como fotografar a fita</p>
+      <button type="button" class="video-fechar" id="video-fechar" aria-label="Fechar vídeo">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <video id="video" playsinline muted controls preload="none"></video>
+  </div>
+</div>
+<div class="camera" id="camera" role="dialog" aria-modal="true" aria-labelledby="camera-titulo" hidden>
+  <div class="camera-topo">
+    <p class="camera-titulo" id="camera-titulo">Câmera</p>
+    <button type="button" class="video-fechar" id="camera-fechar" aria-label="Fechar câmera">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div class="camera-visor">
+    <video id="camera-video" playsinline muted autoplay></video>
+    <div class="camera-guia" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <p class="camera-dica" id="camera-dica"></p>
+    <div class="camera-flash" id="camera-flash" aria-hidden="true"></div>
+    <div class="camera-estado" id="camera-estado" role="status" hidden></div>
+  </div>
+  <div class="camera-base">
+    <button type="button" class="camera-girar" id="camera-girar" aria-label="Trocar de câmera" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 9.5A7.5 7.5 0 0 1 18 7l1.5 1.5M19.5 14.5A7.5 7.5 0 0 1 6 17l-1.5-1.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><path d="M19.8 4.2v4.6h-4.6M4.2 19.8v-4.6h4.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button type="button" class="camera-disparo" id="camera-disparo" aria-label="Tirar foto" disabled><span></span></button>
+    <span aria-hidden="true"></span>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+/* =====================================================================
+   CARTELAS DE REFERÊNCIA
+   Fita 4 em 1: cores medidas na foto da cartela impressa no pote (cada quadradinho
+   corrigido pelo branco do rótulo ao lado dele). Na alcalinidade, o primeiro quadradinho
+   vale "0 a 20" (rotulos troca só o texto embaixo da cor).
+   Para atualizar, troque os pares [valor, "#cor"] e a faixa ideal.
+   passo = arredondamento da leitura; casas = [mín, máx] de casas decimais.
+   ===================================================================== */
+const CARTELA_FITA = [
+  { id: "cl",  tag: "Cl",  nome: "Cloro livre",    curto: "cloro livre",    unidade: "ppm", ideal: [1, 3],     passo: 0.5, casas: [0, 1],
+    escala: [[0, "#FEFAD8"], [1, "#FADBB1"], [2, "#E9C9C3"], [3, "#DBC1D3"], [5, "#AA82A2"], [10, "#7B5E89"]] },
+  { id: "alk", tag: "Alk", nome: "Alcalinidade",   curto: "alcalinidade",   unidade: "ppm", ideal: [80, 120],  passo: 10,  casas: [0, 0], rotulos: ["0–20"],
+    escala: [[20, "#EAB021"], [40, "#B9AB2F"], [80, "#919E2A"], [120, "#719640"], [180, "#5F8564"], [240, "#618D7B"]] },
+  { id: "ph",  tag: "pH",  nome: "Nível de pH",    curto: "pH",             unidade: "",    ideal: [7.2, 7.6], passo: 0.1, casas: [1, 1],
+    escala: [[6.2, "#FBA64F"], [6.8, "#F39471"], [7.2, "#EE7D60"], [7.6, "#EE7674"], [8.4, "#E16D81"], [9.0, "#D75064"]] },
+  { id: "dc",  tag: "DT",  nome: "Dureza total",   curto: "dureza total",   unidade: "ppm", ideal: [100, 250], passo: 10,  casas: [0, 0], topoAberto: true,
+    escala: [[0, "#D4E2C7"], [100, "#84A4A3"], [250, "#76929F"], [450, "#7F7C98"], [800, "#6F607C"]] },
+];
+
+/* Água direta: cartela de cor da água.
+   Nível 1 = barrenta (mais poluída) … nível 5 = limpa (depois da filtragem).
+   Âncoras escolhidas: #89613B (barro intenso), #B99565 (barro claro) e #D9F1F0 (azul cristalino).
+   Os níveis 3 e 4 são as cores intermediárias entre o barro claro e a água limpa.
+   As outras cores da paleta caem sozinhas no nível certo: #79502F e #9B7046 → 1;
+   #A87945 e #C5A16D → 2; #C5E7DF e #EAF4F3 → 5. */
+const CARTELA_AGUA = [
+  { id: "cor", tag: "Cor", nome: "Cor da água", curto: "cor da água", unidade: "", ideal: [5, 5], passo: 1, casas: [0, 0], niveis: true,
+    escala: [[1, "#89613B"], [2, "#B99565"], [3, "#C7B392"], [4, "#D2D1C0"], [5, "#D9F1F0"]] },
+];
+// O que cada nível da cartela da água quer dizer e o que fazer.
+const AGUA_NIVEIS = [null,
+  { nome: "Barrenta",    texto: "Muito barrenta, com cor forte de barro.",               dica: "deixe o barro assentar no fundo, filtre e teste de novo." },
+  { nome: "Barro claro", texto: "Barrenta, como a água do rio antes da filtragem.",      dica: "filtre a água e teste de novo." },
+  { nome: "Turva",       texto: "Turva: entre a água barrenta e a limpa.",               dica: "filtre de novo e teste outra vez." },
+  { nome: "Quase limpa", texto: "Quase limpa, com um leve tom de barro.",                dica: "passe mais uma vez pelo filtro e teste de novo." },
+  { nome: "Limpa",       texto: "Visualmente limpa, como a água depois da filtragem." },
+];
+/* Água direta: média de cada parâmetro em cada nível de cor (porNivel = níveis 1 a 5, em mg/L = ppm).
+   Entre dois níveis o valor fica no meio do caminho, conforme a cor lida.
+   São estimativas pela cor da água, não medidas. O resultado aparece igual ao da fita (mesma régua),
+   e o ideal de cada um é o da água limpa: do valor do nível 5 até o meio do caminho para o nível 4
+   (as mesmas cores que contam como nível 5), arredondado para fora. */
+const AGUA_PARAMS = [
+  { id: "cl",  passo: 0.1, porNivel: [0.0, 0.2, 0.5, 0.8, 0.5] },
+  { id: "alk", passo: 5,   porNivel: [20, 40, 60, 80, 100] },
+  { id: "ph",  passo: 0.1, porNivel: [5.5, 6.0, 6.5, 7.0, 7.0] },
+  { id: "dc",  passo: 5,   porNivel: [30, 50, 80, 120, 100] },
+];
+
+/* Como corrigir cada item fora do ideal. ordem = ordem recomendada de correção
+   (alcalinidade, depois pH, depois cloro). fem = nome feminino ("alta"/"baixa"). */
+const CORRECAO = {
+  alk: { rot: "Alcalinidade",   fem: true, ordem: 1, baixo: "use elevador de alcalinidade (bicarbonato de sódio).", alto: "use redutor de pH aos poucos para baixar a alcalinidade." },
+  ph:  { rot: "pH",                        ordem: 2, baixo: "use elevador de pH (barrilha).",                       alto: "use redutor de pH." },
+  cl:  { rot: "Cloro livre",               ordem: 3, baixo: "adicione cloro.",                                      alto: "não adicione cloro e espere o nível baixar antes de nadar." },
+  dc:  { rot: "Dureza total",   fem: true, ordem: 4, baixo: "use elevador de dureza (cloreto de cálcio).",          alto: "troque parte da água da piscina." },
+};
+
+/* =====================================================================
+   NÚCLEO DE COR (funções puras)
+   ===================================================================== */
+/*CORE-START*/
+const PAPEL = 248; // branco de referência (o papel da cartela)
+const LIN = new Float32Array(256);
+for (let i = 0; i < 256; i++) { const c = i / 255; LIN[i] = c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+function toLin(v) { const c = v / 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+function toSrgb(l) { const c = Math.min(1, Math.max(0, l)); return 255 * (c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055); }
+function hexToRgb(hex) { const n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+function rgbToHex(rgb) { return "#" + rgb.map(v => Math.round(Math.min(255, Math.max(0, v))).toString(16).padStart(2, "0")).join("").toUpperCase(); }
+
+function linToLab([R, G, B]) {
+  const X = (0.4124564 * R + 0.3575761 * G + 0.1804375 * B) / 0.95047;
+  const Y = 0.2126729 * R + 0.7151522 * G + 0.0721750 * B;
+  const Z = (0.0193339 * R + 0.1191920 * G + 0.9503041 * B) / 1.08883;
+  const f = t => t > 216 / 24389 ? Math.cbrt(t) : (24389 / 27 * t + 16) / 116;
+  const fx = f(X), fy = f(Y), fz = f(Z);
+  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+}
+function labToLin([L, a, b]) {
+  const fy = (L + 16) / 116, fx = fy + a / 500, fz = fy - b / 200;
+  const inv = t => t > 6 / 29 ? t * t * t : 3 * (6 / 29) * (6 / 29) * (t - 4 / 29);
+  const X = 0.95047 * inv(fx), Y = inv(fy), Z = 1.08883 * inv(fz);
+  return [
+     3.2404542 * X - 1.5371385 * Y - 0.4985314 * Z,
+    -0.9692660 * X + 1.8760108 * Y + 0.0415560 * Z,
+     0.0556434 * X - 0.2040259 * Y + 1.0572252 * Z,
+  ].map(v => Math.min(1, Math.max(0, v)));
+}
+
+// Diferença de cor CIEDE2000
+function de2000([L1, a1, b1], [L2, a2, b2]) {
+  const rad = Math.PI / 180, p7 = x => Math.pow(x, 7);
+  const Cb = (Math.hypot(a1, b1) + Math.hypot(a2, b2)) / 2;
+  const G = 0.5 * (1 - Math.sqrt(p7(Cb) / (p7(Cb) + p7(25))));
+  const a1p = (1 + G) * a1, a2p = (1 + G) * a2;
+  const C1p = Math.hypot(a1p, b1), C2p = Math.hypot(a2p, b2);
+  const hue = (b, a) => { if (a === 0 && b === 0) return 0; const h = Math.atan2(b, a) / rad; return h < 0 ? h + 360 : h; };
+  const h1p = hue(b1, a1p), h2p = hue(b2, a2p);
+  const dLp = L2 - L1, dCp = C2p - C1p;
+  let dhp = 0;
+  if (C1p * C2p !== 0) { dhp = h2p - h1p; if (dhp > 180) dhp -= 360; else if (dhp < -180) dhp += 360; }
+  const dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin(dhp * rad / 2);
+  const Lbp = (L1 + L2) / 2, Cbp = (C1p + C2p) / 2;
+  let hbp = h1p + h2p;
+  if (C1p * C2p !== 0) { if (Math.abs(h1p - h2p) > 180) hbp += hbp < 360 ? 360 : -360; hbp /= 2; }
+  const T = 1 - 0.17 * Math.cos((hbp - 30) * rad) + 0.24 * Math.cos(2 * hbp * rad) + 0.32 * Math.cos((3 * hbp + 6) * rad) - 0.20 * Math.cos((4 * hbp - 63) * rad);
+  const dTheta = 30 * Math.exp(-Math.pow((hbp - 275) / 25, 2));
+  const Rc = 2 * Math.sqrt(p7(Cbp) / (p7(Cbp) + p7(25)));
+  const Sl = 1 + 0.015 * Math.pow(Lbp - 50, 2) / Math.sqrt(20 + Math.pow(Lbp - 50, 2));
+  const Sc = 1 + 0.045 * Cbp, Sh = 1 + 0.015 * Cbp * T;
+  const Rt = -Math.sin(2 * dTheta * rad) * Rc;
+  return Math.sqrt(Math.pow(dLp / Sl, 2) + Math.pow(dCp / Sc, 2) + Math.pow(dHp / Sh, 2) + Rt * (dCp / Sc) * (dHp / Sh));
+}
+
+function prepararParam(p) {
+  p.vals = p.escala.map(e => e[0]);
+  p.labs = p.escala.map(e => linToLab(hexToRgb(e[1]).map(toLin)));
+  return p;
+}
+
+// Média da cor (em luz linear) num círculo; descarta reflexos e sombras.
+function amostrar(data, w, h, cx, cy, r) {
+  r = Math.max(r, 1.5);
+  const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(w - 1, Math.ceil(cx + r));
+  const y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(h - 1, Math.ceil(cy + r));
+  const px = [], r2 = r * r;
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      const dx = x - cx, dy = y - cy;
+      if (dx * dx + dy * dy > r2) continue;
+      const k = (y * w + x) * 4;
+      const R = LIN[data[k]], G = LIN[data[k + 1]], B = LIN[data[k + 2]];
+      px.push([R, G, B, 0.2126 * R + 0.7152 * G + 0.0722 * B]);
+    }
+  }
+  if (!px.length) return null;
+  px.sort((a, b) => a[3] - b[3]);
+  const lo = Math.floor(px.length * 0.10), hi = Math.max(lo + 1, Math.ceil(px.length * 0.85));
+  let R = 0, G = 0, B = 0, n = 0;
+  for (let i = lo; i < hi; i++) { R += px[i][0]; G += px[i][1]; B += px[i][2]; n++; }
+  return [R / n, G / n, B / n];
+}
+
+// Corrige a cor da luz usando o ponto branco (cada canal escalado para o branco de referência).
+function equilibrar(lin, branco) {
+  if (!branco) return lin.slice();
+  const alvo = toLin(PAPEL);
+  return lin.map((v, i) => Math.min(1, v * Math.min(6, Math.max(0.3, alvo / Math.max(branco[i], 1e-4)))));
+}
+
+// Acha o trecho da escala mais próximo da cor e interpola o valor.
+function estimar(p, lab) {
+  const L = p.labs, V = p.vals;
+  let best = null;
+  for (let i = 0; i < L.length - 1; i++) {
+    const A = L[i], B = L[i + 1];
+    const ab = [B[0] - A[0], B[1] - A[1], B[2] - A[2]];
+    const ap = [lab[0] - A[0], lab[1] - A[1], lab[2] - A[2]];
+    const len2 = ab[0] * ab[0] + ab[1] * ab[1] + ab[2] * ab[2];
+    let t = len2 > 0 ? (ap[0] * ab[0] + ap[1] * ab[1] + ap[2] * ab[2]) / len2 : 0;
+    t = Math.min(1, Math.max(0, t));
+    const d = de2000(lab, [A[0] + t * ab[0], A[1] + t * ab[1], A[2] + t * ab[2]]);
+    if (!best || d < best.d - 1e-9) best = { i, t, d };
+  }
+  const { i, t, d } = best;
+  const frac = i + t;
+  return {
+    v: V[i] + t * (V[i + 1] - V[i]),
+    frac, d,
+    noTopo: frac >= L.length - 1 - 0.02,
+    naBase: frac <= 0.02,
+    entre: t > 0.02 && t < 0.98 ? [V[i], V[i + 1]] : null,
+    perto: V[Math.round(frac)],
+  };
+}
+
+// Valor -> posição fracionária na escala (para a faixa ideal).
+function fracDe(p, v) {
+  const V = p.vals;
+  if (v <= V[0]) return 0;
+  if (v >= V[V.length - 1]) return V.length - 1;
+  for (let i = 0; i < V.length - 1; i++) if (v <= V[i + 1]) return i + (v - V[i]) / (V[i + 1] - V[i]);
+  return V.length - 1;
+}
+function arredondar(p, v) { return Math.round(v / p.passo) * p.passo; }
+function situacao(p, v) { return v < p.ideal[0] - 1e-9 ? "baixo" : v > p.ideal[1] + 1e-9 ? "alto" : "ideal"; }
+function confianca(d) { return d <= 6 ? "boa" : d <= 12 ? "razoavel" : "incerta"; }
+
+/*CORE-END*/
+
+/* =====================================================================
+   MODOS DE SCAN
+   ===================================================================== */
+CARTELA_FITA.forEach(prepararParam);
+CARTELA_AGUA.forEach(prepararParam);
+
+const MODOS = {
+  fita: {
+    nome: "Fita de teste",
+    titulo: "Foto da fita",
+    sub: "Fita 4 em 1 · Cloro livre · Alcalinidade · pH · Dureza total",
+    icone: '<svg viewBox="0 0 24 24"><rect x="8.5" y="1.8" width="7" height="20.4" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.9"/><rect x="10.2" y="4" width="3.6" height="3" rx=".6" fill="currentColor"/><rect x="10.2" y="8.4" width="3.6" height="3" rx=".6" fill="currentColor"/><rect x="10.2" y="12.8" width="3.6" height="3" rx=".6" fill="currentColor"/></svg>',
+    vazioTitulo: "Tire uma foto da fita 4 em 1",
+    vazioTexto: "Os blocos são lidos automaticamente.",
+    pontos: [
+      { id: "cl", tag: "Cl", nome: "Cloro livre" },
+      { id: "alk", tag: "Alk", nome: "Alcalinidade" },
+      { id: "ph", tag: "pH", nome: "pH" },
+      { id: "dc", tag: "DT", nome: "Dureza total" },
+    ],
+    params: CARTELA_FITA.map(p => Object.assign(p, { ponto: p.id })),
+    guia: [
+      "Mergulhe a fita na água por 2 segundos.",
+      "Retire com as cores para cima e agite de leve.",
+      "Fotografe só a fita, na hora, sobre papel branco e com luz do dia.",
+    ],
+    nota: "Cores de referência tiradas da cartela impressa no pote. A leitura por foto é uma estimativa e depende da luz.",
+  },
+  agua: {
+    nome: "Água direta",
+    titulo: "Foto da amostra",
+    sub: "Cor da água, da barrenta à limpa",
+    icone: '<svg viewBox="0 0 24 24"><path d="M12 2.8c3.6 4.3 6.2 7.9 6.2 11a6.2 6.2 0 0 1-12.4 0c0-3.1 2.6-6.7 6.2-11z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M9.2 14.4a2.9 2.9 0 0 0 2.6 2.7" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
+    vazioTitulo: "Tire uma foto do copo com a água",
+    vazioTexto: "A cor da água é lida automaticamente.",
+    pontos: [
+      { id: "agua", tag: "A", nome: "Água" },
+    ],
+    params: CARTELA_AGUA.map(p => Object.assign(p, { ponto: "agua" })),
+    guia: [
+      "Encha um copo transparente com água da piscina (e o reagente, se o teste usar gotas).",
+      "Apoie o copo sobre papel branco, com luz do dia.",
+      "Fotografe de cima, sem flash, com o copo no centro da foto.",
+    ],
+    nota: "Cartela de cor da água: marrom é mais poluída, clara é limpa e os tons do meio são os níveis intermediários. Cloro, alcalinidade, pH e dureza são a média de cada nível de cor (estimativas, não medidas), e o ideal de cada um é o da água limpa (nível 5). A leitura por foto depende da luz e do copo.",
+  },
+};
+
+const S = { modo: "fita", tela: "inicio", fita: null, agua: null, hover: null, largura: 0 };
+const atual = () => S[S.modo];
+const $ = sel => document.querySelector(sel);
+const cv = $("#cv"), ctx = cv.getContext("2d"), stage = $("#stage");
+const ROTULO = { ideal: "Ideal", baixo: "Baixo", alto: "Alto" };
+
+const formatos = new Map();
+function fmt(v, casas) {
+  const k = casas.join(",");
+  if (!formatos.has(k)) formatos.set(k, new Intl.NumberFormat("pt-BR", { minimumFractionDigits: casas[0], maximumFractionDigits: casas[1] }));
+  return formatos.get(k).format(v);
+}
+function cssVar(nome) { return getComputedStyle(document.documentElement).getPropertyValue(nome).trim(); }
+function raioDe(est) { return est.raio / 100 * Math.min(est.w, est.h); }
+
+function estadoDeCanvas(id, canvas, exemplo) {
+  const g = canvas.getContext("2d", { willReadFrequently: true });
+  return {
+    id, src: canvas, w: canvas.width, h: canvas.height, exemplo,
+    data: g.getImageData(0, 0, canvas.width, canvas.height).data,
+    marcas: {}, ativo: exemplo ? null : MODOS[id].pontos[0].id,
+    raio: S[id] ? S[id].raio : 1.5,
+    eixo: null, auto: null,
+  };
+}
+
+/* ---------- Leitura ---------- */
+function ler(est) {
+  const modo = MODOS[est.id], r = raioDe(est);
+  // só a cor de cada bloco (ou da água) conta; o fundo não entra na leitura
+  const pontos = {}, hexPonto = {};
+  for (const p of modo.pontos) {
+    const m = est.marcas[p.id], raw = m ? amostrar(est.data, est.w, est.h, m.x, m.y, r) : null;
+    if (raw) { pontos[p.id] = raw; hexPonto[p.id] = rgbToHex(raw.map(toSrgb)); }
+  }
+  const params = modo.params.map(p => {
+    const lin = pontos[p.ponto];
+    if (!lin) return { p, lido: false };
+    const e = estimar(p, linToLab(lin));
+    const vr = arredondar(p, e.v);
+    return Object.assign({ p, lido: true, hex: hexPonto[p.ponto], vr, status: situacao(p, vr) }, e);
+  });
+  return { pontos, hexPonto, params };
+}
+
+function valorTexto(p, r) {
+  if (p.niveis) { const na = nivelAgua(r); return na && !na.fora ? `Nível ${na.nivel}` : "—"; }
+  if (r.noTopo) return "≥ " + fmt(p.vals[p.vals.length - 1], p.casas);
+  if (r.naBase && p.vals[0] !== 0) return "≤ " + fmt(p.vals[0], p.casas);
+  return "≈ " + fmt(r.vr, p.casas);
+}
+function faixaTexto(p) {
+  if (p.niveis) return `Padrão: nível ${p.ideal[0]} (${AGUA_NIVEIS[p.ideal[0]].nome.toLowerCase()})`;
+  const a = fmt(p.ideal[0], p.casas), b = fmt(p.ideal[1], p.casas);
+  return `Ideal ${a === b ? a : `${a}–${b}`}${p.unidade ? " " + p.unidade : ""}`; }
+
+/* ---------- Render ---------- */
+function render() {
+  renderTitulo();
+  const est = atual(), tem = !!est;
+  // sem foto ainda: só a parte de scan
+  $("#vazio-scan").hidden = tem;
+  // depois do teste: Câmera, Galeria e "Como fotografar" dão lugar a "Fazer novo teste"
+  $(".capture").hidden = tem;
+  $("#compat").hidden = S.modo !== "fita" || tem;
+  $("#btn-video").hidden = tem;
+  $("#btn-novo").hidden = !tem;
+  $("#stage").hidden = !tem;
+  $("#veredito").hidden = !tem;
+  $("#card-resultado").hidden = !tem;
+  $(".layout").classList.toggle("so-scan", !tem);
+  renderFoto(est);
+  if (!tem) return;
+  const L = ler(est);
+  desenhar();
+  renderVeredito(est, L);
+  renderResultado(est, L);
+}
+
+function renderTitulo() {
+  const modo = MODOS[S.modo];
+  $("#modo-titulo").textContent = modo.nome;
+  $("#modo-sub").textContent = modo.sub;
+  $("#modo-icone").innerHTML = modo.icone;
+}
+
+function renderFoto(est) {
+  const modo = MODOS[S.modo];
+  $("#foto-titulo").textContent = modo.titulo;
+  $("#guia").innerHTML = modo.guia.map(t => `<li>${t}</li>`).join("");
+  const vz = $("#vazio-scan");
+  if (!est && vz.dataset.modo !== S.modo) {
+    // desenho da tela inicial (fita ou copo) com a linha de scan
+    vz.dataset.modo = S.modo;
+    const svg = document.querySelector(`a.opcao[href="#${S.modo}"] svg`);
+    $("#vazio-ilu").innerHTML = svg ? svg.outerHTML.replaceAll("brilho-", "brilho2-") : "";
+    $("#vazio-titulo").textContent = modo.vazioTitulo;
+    $("#vazio-texto").textContent = modo.vazioTexto;
+  }
+}
+
+function renderResultado(est, L) {
+  const modo = MODOS[S.modo], v = veredito(est, L);
+  let html = "", itens, extra;
+
+  if (S.modo === "agua") {
+    // água direta: os 4 parâmetros estimados pela cor, no mesmo formato da fita
+    const cor = L.params[0], na = nivelAgua(cor);
+    itens = estimativasAgua(cor);
+    extra = {
+      amostra: L.hexPonto.agua || null,
+      nome: na && !na.fora ? AGUA_NIVEIS[na.nivel].nome : "",
+      semLeitura: L.hexPonto.agua ? "Cor fora da cartela" : "Amostra não lida",
+      motivo: L.hexPonto.agua ? "A cor ficou fora da cartela de cor da água, então os parâmetros não foram estimados." : "Não deu para ler a cor da amostra.",
+    };
+    html = cartaoAmostra(L) + L.params.map(linhaParam).join("") + itens.map(linhaParam).join("");
+  } else {
+    itens = L.params;
+    extra = { semLeitura: "Fita não encontrada", motivo: "A fita 4 em 1 não foi encontrada nesta foto." };
+    html = L.params.map(linhaParam).join("");
+  }
+
+  const placar = placarHtml(itens, v, extra);
+  if (placar !== ultimoPlacar) { ultimoPlacar = placar; $("#placar").innerHTML = placar; }
+  $("#resumo").textContent = resumoCurto(itens, extra);
+  $("#linhas").innerHTML = html;
+  $("#nota").textContent = modo.nota;
+}
+
+// Placar: anel com um pedaço por parâmetro, quantos estão dentro dos padrões, o nível e um bloco por parâmetro.
+let ultimoPlacar = "";
+function arcoAnel(k, n) {
+  const vao = 8, a0 = (-90 + (k * 360) / n + vao / 2) * Math.PI / 180, a1 = (-90 + ((k + 1) * 360) / n - vao / 2) * Math.PI / 180;
+  const pt = a => `${(46 + 37 * Math.cos(a)).toFixed(2)} ${(46 + 37 * Math.sin(a)).toFixed(2)}`;
+  return `M${pt(a0)}A37 37 0 0 1 ${pt(a1)}`;
+}
+function placarHtml(itens, v, extra) {
+  const n = itens.length, lidos = itens.filter(r => r.lido), dentro = lidos.filter(r => r.status === "ideal").length;
+  const estado = r => (r.lido ? r.status : "pendente");
+  const anel = `<div class="anel-box"><svg class="anel" viewBox="0 0 92 92" aria-hidden="true">` +
+    itens.map((r, k) => `<path d="${arcoAnel(k, n)}" data-estado="${estado(r)}"/>`).join("") +
+    `</svg><p class="anel-centro" aria-hidden="true"><span>${lidos.length ? `<b>${dentro}</b><i>/${n}</i>` : "<b>—</b>"}</span></p></div>`;
+  const rot = !lidos.length ? extra.semLeitura
+    : dentro === n ? "Todos dentro dos padrões" : dentro === 0 ? "Nenhum dentro dos padrões" : `${dentro} de ${n} dentro dos padrões`;
+  const nivel = v.falha ? "" : `<p class="placar-nivel" data-nivel="n${v.nivel}">` +
+    (extra.amostra ? `<span class="placar-amostra" style="background:${extra.amostra}" aria-hidden="true"></span>` : "") +
+    `Nível ${v.nivel} de 5${extra.nome ? ` · ${extra.nome}` : ""}</p>`;
+  const blocos = itens.map(r => {
+    const p = r.p, un = p.unidade ? " " + p.unidade : "";
+    const selo = r.lido ? ROTULO[r.status] : r.estimado && r.fora ? "Sem estimativa" : "Não lido";
+    const val = r.lido ? valorTexto(p, r) + (p.unidade ? `<small>${p.unidade}</small>` : "") : "—";
+    const fala = `${p.nome}: ${r.lido ? `${valorTexto(p, r)}${un}, ${selo.toLowerCase()}` : selo.toLowerCase()}. Ver detalhes.`;
+    return `<button type="button" class="item" data-estado="${estado(r)}" data-alvo="${p.id}" aria-label="${fala}">` +
+      `<span class="item-tag" aria-hidden="true">${p.tag}</span><span class="item-val" aria-hidden="true">${val}</span>` +
+      `<span class="item-est" aria-hidden="true">${selo}</span></button>`;
+  }).join("");
+  return `<div class="placar-topo">${anel}<div class="placar-txt"><p class="placar-rot">${rot}</p>${nivel}</div></div>` +
+    `<div class="placar-itens">${blocos}</div>`;
+}
+// Frase curta embaixo do placar: o que está fora dos padrões (ou por que não há leitura).
+function resumoCurto(itens, extra) {
+  const lidos = itens.filter(r => r.lido);
+  if (!lidos.length) return extra.motivo;
+  if (lidos.length < itens.length) return `Não deu para ler ${juntar(itens.filter(r => !r.lido).map(r => r.p.curto))}.`;
+  const fora = lidos.filter(r => r.status !== "ideal");
+  if (!fora.length) return "Todos os parâmetros estão dentro dos padrões.";
+  return `Fora dos padrões: ${juntar(fora.map(r => `${r.p.curto} ${estadoTxt(r.p, r.status)}`))}.`;
+}
+
+/* ---------- Veredito: 5 níveis, de totalmente fora a totalmente dentro dos padrões ---------- */
+const ICONES_VER = {
+  check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  traco: '<svg viewBox="0 0 24 24"><path d="M6.5 12h11" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg>',
+  alerta: '<svg viewBox="0 0 24 24"><path d="M12 5.5v8.5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/><circle cx="12" cy="18.4" r="1.7" fill="currentColor"/></svg>',
+  x: '<svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg>',
+};
+const NIVEIS = [null,
+  { rotulo: "Totalmente fora dos padrões", icone: "x" },
+  { rotulo: "Muito fora dos padrões", icone: "alerta" },
+  { rotulo: "Parcialmente dentro dos padrões", icone: "traco" },
+  { rotulo: "Quase dentro dos padrões", icone: "check" },
+  { rotulo: "Totalmente dentro dos padrões", icone: "check" },
+];
+// com N parâmetros, k dentro dos padrões vira um nível de 1 a 5 (com 4 parâmetros: 0→1, 1→2, 2→3, 3→4, 4→5)
+function nivelPorContagem(k, N) { return 1 + Math.round(4 * k / N); }
+function estadoTxt(p, status) { return (CORRECAO[p.id] || {}).fem ? ({ baixo: "baixa", alto: "alta" }[status] || status) : status; }
+function juntar(lista) { return lista.length < 2 ? lista.join("") : lista.slice(0, -1).join(", ") + " e " + lista[lista.length - 1]; }
+
+function veredito(est, L) {
+  const modo = MODOS[S.modo], avisos = [];
+
+  if (modo.params.length) {
+    const N = modo.params.length, lidos = L.params.filter(r => r.lido);
+    if (lidos.length < N) {
+      if (!lidos.length) return S.modo === "fita"
+        ? { falha: true, titulo: "Fita 4 em 1 não encontrada", sub: "Aqui só é lida a fita 4 em 1 (cloro livre, alcalinidade, pH e dureza total). Tire uma foto só da fita molhada, bem de perto, sobre papel branco e na luz do dia." }
+        : { falha: true, titulo: "Não deu para ler a amostra", sub: "Tire outra foto do copo, de cima e na luz do dia." };
+      const faltam = L.params.filter(r => !r.lido).map(r => r.p.curto);
+      return { falha: true, titulo: "Leitura incompleta", sub: `Não deu para ler ${juntar(faltam)}. Tire outra foto, mais de perto e com boa luz.` };
+    }
+    if (S.modo === "agua") return vereditoAgua(lidos[0]);
+    const incertos = lidos.filter(r => confianca(r.d) === "incerta").map(r => (CORRECAO[r.p.id] || {}).rot || r.p.nome);
+    if (incertos.length) avisos.push(`Leitura incerta em ${juntar(incertos)}: se puder, tire outra foto com mais luz.`);
+    const fora = lidos.filter(r => r.status !== "ideal")
+      .sort((a, b) => ((CORRECAO[a.p.id] || {}).ordem || 9) - ((CORRECAO[b.p.id] || {}).ordem || 9));
+    const dentro = N - fora.length, nivel = nivelPorContagem(dentro, N);
+    const sub = dentro === N ? `Os ${N} parâmetros estão dentro dos padrões.`
+      : dentro === 0 ? `Nenhum dos ${N} parâmetros está dentro dos padrões.`
+      : `${dentro} de ${N} parâmetros dentro dos padrões.`;
+    const dicas = fora.map(r => {
+      const c = CORRECAO[r.p.id] || {};
+      return { rotulo: `${c.rot || r.p.nome} ${estadoTxt(r.p, r.status)}:`, texto: c[r.status] || "corrija até voltar à faixa ideal." };
+    });
+    if (fora.length) avisos.unshift(fora.length > 1 ? "Corrija nesta ordem, um item por vez, seguindo a dose do rótulo de cada produto." : "Siga a dose indicada no rótulo do produto.");
+    return { nivel, titulo: NIVEIS[nivel].rotulo, sub, dicas: dicas.length ? dicas : null, nota: avisos.join(" ") };
+  }
+
+  // Água direta com a cartela vazia: só dá para mostrar a cor lida.
+  if (!L.pontos.agua) return { falha: true, titulo: "Não deu para ler a amostra", sub: "Tire outra foto do copo, de cima e na luz do dia." };
+  return { falha: true, titulo: "Cartela da água vazia", sub: "A cor da amostra foi lida, mas não há cores de referência para comparar." };
+}
+
+// Água direta: nível 1 (barrenta) a 5 (limpa) pela posição da cor na cartela.
+// Uma cor muito longe de todas as cores da cartela (verde, por exemplo) fica "fora da cartela".
+function nivelAgua(r) {
+  if (!r || !r.lido) return null;
+  if (confianca(r.d) === "incerta") return { fora: true };
+  return { nivel: Math.min(5, Math.max(1, Math.round(r.vr))) };
+}
+// Cloro, alcalinidade, pH e dureza da água direta, pela posição da cor na cartela
+// (frac 0 = nível 1 … 4 = nível 5): a média do nível, ou o meio do caminho entre dois níveis.
+function estimarPorNivel(q, frac) {
+  const f = Math.min(4, Math.max(0, frac)), i = Math.min(3, Math.floor(f)), t = f - i;
+  return q.porNivel[i] + t * (q.porNivel[i + 1] - q.porNivel[i]);
+}
+// ideal de cada um: do valor do nível 5 até o meio do caminho para o nível 4, arredondado para fora
+AGUA_PARAMS.forEach(q => {
+  const a = estimarPorNivel(q, 3.5), b = q.porNivel[4], k = q.passo;
+  q.ideal = [Math.floor(Math.min(a, b) / k + 1e-9) * k, Math.ceil(Math.max(a, b) / k - 1e-9) * k];
+});
+// Cada estimativa vira uma "leitura" como a da fita: mesma régua, mesmo selo Ideal/Baixo/Alto.
+// O marcador fica na posição do valor na régua da fita (com a cor da régua naquele ponto).
+function estimativasAgua(cor) {
+  const na = nivelAgua(cor);
+  return AGUA_PARAMS.map(q => {
+    const p = Object.assign({}, CARTELA_FITA.find(f => f.id === q.id), { ideal: q.ideal, passo: q.passo });
+    if (!na || na.fora) return { p, lido: false, estimado: true, fora: !!(cor && cor.lido) };
+    const v = estimarPorNivel(q, cor.frac), vr = arredondar(p, v), V = p.vals, n = V.length;
+    const abaixo = vr < V[0] - 1e-9, acima = vr > V[n - 1] + 1e-9;
+    const frac = abaixo ? -0.4 : acima ? n - 1 + 0.4 : fracDe(p, vr);
+    const i = Math.min(n - 2, Math.max(0, Math.floor(frac))), t = Math.min(1, Math.max(0, frac - i));
+    const lab = p.labs[i].map((c, k) => c + t * (p.labs[i + 1][k] - c));
+    return {
+      p, lido: true, estimado: true, v, vr, frac, d: 0, abaixo, acima, status: situacao(p, vr),
+      hex: rgbToHex(labToLin(lab).map(toSrgb)), amostra: cor.hex,
+      entre: !abaixo && !acima && t > 0.02 && t < 0.98 ? [V[i], V[i + 1]] : null,
+      perto: V[Math.min(n - 1, Math.max(0, Math.round(frac)))],
+    };
+  });
+}
+function vereditoAgua(r) {
+  const na = nivelAgua(r);
+  if (na.fora) return { falha: true, titulo: "Cor fora da cartela",
+    sub: "A cor da amostra não parece barro nem água limpa. Tire outra foto com luz do dia, com o copo sobre papel branco.",
+    nota: "Se a água estiver mesmo com outra cor, como verde, não beba sem tratar." };
+  const info = AGUA_NIVEIS[na.nivel], avisos = ["Cor comparada com a cartela de cor da água, do barro à água limpa."];
+  if (na.nivel === 5) avisos.push("Cor limpa não garante água potável: para beber, ferva ou trate com hipoclorito.");
+  return { nivel: na.nivel, titulo: NIVEIS[na.nivel].rotulo, sub: info.texto,
+    dicas: info.dica ? [{ rotulo: "O que fazer:", texto: info.dica }] : null, nota: avisos.join(" ") };
+}
+
+function medidor(n) {
+  const segs = [1, 2, 3, 4, 5].map(k => `<span${k === n ? ' class="atual"' : ""}></span>`).join("");
+  return `<div class="nivel" role="img" aria-label="Nível ${n} de 5: ${NIVEIS[n].rotulo}">` +
+    `<div class="nivel-barra">${segs}</div><div class="nivel-pontas"><span>Fora dos padrões</span><span>Dentro dos padrões</span></div></div>`;
+}
+
+let ultimoVer = "";
+function renderVeredito(est, L) {
+  const v = veredito(est, L);
+  const icone = v.falha ? ICONES_VER.alerta : ICONES_VER[NIVEIS[v.nivel].icone];
+  const html = `<span class="ver-icone" aria-hidden="true">${icone}</span>` +
+    `<div class="ver-texto"><p class="ver-titulo">${v.titulo}</p>` +
+    (v.sub ? `<p class="ver-sub">${v.sub}</p>` : "") +
+    (v.falha ? "" : medidor(v.nivel)) +
+    (v.dicas ? `<ul class="ver-dicas">${v.dicas.map(d => `<li><b>${d.rotulo}</b> ${d.texto}</li>`).join("")}</ul>` : "") +
+    (v.nota ? `<p class="ver-nota">${v.nota}</p>` : "") + `</div>`;
+  const el = $("#veredito");
+  el.dataset.estado = v.falha ? "falha" : "n" + v.nivel;
+  if (html !== ultimoVer) { ultimoVer = html; el.innerHTML = html; }
+}
+
+function linhaParam(r) {
+  const p = r.p, n = p.vals.length;
+  // o quadro do ideal cobre quadradinhos inteiros: os que a faixa ideal toca
+  // (na fita a faixa já cai em cima dos números; na água, como 90–100, fica entre dois)
+  const fa = fracDe(p, p.ideal[0]), fb = fracDe(p, p.ideal[1]);
+  const i0 = Math.ceil(fa - 0.5 - 1e-9), i1 = Math.max(i0, Math.floor(fb + 0.5 + 1e-9));
+  const esq = (i0 / n) * 100, dir = 100 - ((i1 + 1) / n) * 100;
+  const sw = p.escala.map(([, hex]) => `<span class="sw" style="background:${hex}"></span>`).join("");
+  const lb = p.vals.map((v, i) => {
+    const dentro = v >= p.ideal[0] - 1e-9 && v <= p.ideal[1] + 1e-9;
+    return `<span class="lb${dentro ? " in" : ""}">${p.rotulos && p.rotulos[i] ? p.rotulos[i] : fmt(v, p.casas)}${p.topoAberto && i === n - 1 ? "+" : ""}</span>`;
+  }).join("");
+  const un = p.unidade ? " " + p.unidade : "";
+  let pin = "", valor = "—", chip = `<span class="chip pendente">${r.estimado && r.fora ? "Sem estimativa" : "Não lido"}</span>`, estado = "pendente";
+  let meta = `<p class="meta">${r.estimado ? `Sem estimativa: ${r.fora ? "a cor da água ficou fora da cartela" : "a cor da água não foi lida nesta foto"}.`
+    : p.niveis ? "Não deu para ler a cor da água nesta foto." : `Não deu para ler o bloco de ${p.curto} nesta foto.`}</p>`;
+  let rotuloEscala = `Escala de ${fmt(p.vals[0], p.casas)} a ${fmt(p.vals[n - 1], p.casas)}${un}, ainda sem leitura.`;
+  if (r.lido) {
+    estado = r.status;
+    const pos = ((r.frac + 0.5) / n) * 100;
+    pin = `<span class="pin" style="left:${pos.toFixed(2)}%"><span class="pin-dot" style="background:${r.hex}"></span><span class="pin-stem"></span></span>`;
+    valor = valorTexto(p, r) + (p.unidade ? `<small>${p.unidade}</small>` : "");
+    chip = `<span class="chip ${estado}">${ROTULO[estado]}</span>`;
+    const conf = confianca(r.d);
+    const confTxt = { boa: "leitura boa", razoavel: "leitura razoável", incerta: "leitura incerta: tente outra foto com mais luz" }[conf];
+    const onde = p.niveis
+      ? (r.entre ? `entre os níveis ${r.entre[0]} e ${r.entre[1]}` : `perto do nível ${r.perto}`)
+      : r.abaixo ? `abaixo de ${fmt(p.vals[0], p.casas)}` : r.acima ? `acima de ${fmt(p.vals[n - 1], p.casas)}`
+      : (r.entre ? `entre ${fmt(r.entre[0], p.casas)} e ${fmt(r.entre[1], p.casas)}` : `perto de ${fmt(r.perto, p.casas)}`);
+    if (p.niveis) {
+      const na = nivelAgua(r);
+      estado = na.fora ? "pendente" : r.status;
+      chip = na.fora ? `<span class="chip pendente">Fora da cartela</span>`
+        : `<span class="chip ${na.nivel === 5 ? "ideal" : "baixo"}">${AGUA_NIVEIS[na.nivel].nome}</span>`;
+    }
+    meta = r.estimado
+      // estimado pela cor da água: mostra a cor da amostra (o que foi medido de verdade)
+      ? `<p class="meta"><span class="dot" style="background:${r.amostra}" aria-hidden="true"></span><code>${r.amostra}</code><span>${onde}${un}</span><span>estimado pela cor da água</span></p>`
+      : `<p class="meta${conf === "incerta" ? " unsure" : ""}"><span class="dot" style="background:${r.hex}" aria-hidden="true"></span><code>${r.hex}</code><span>${onde}${un}</span><span>${confTxt}</span></p>`;
+    rotuloEscala = p.niveis ? `Cor da água: ${valorTexto(p, r).toLowerCase()}, ${onde}.`
+      : `Leitura ${valorTexto(p, r)}${un}, ${onde}${un}, ${ROTULO[estado].toLowerCase()}.`;
+  }
+  return `<article class="param" data-estado="${estado}" data-id="${p.id}">
+    <div class="param-head">
+      <span class="tag" aria-hidden="true">${p.tag}</span>
+      <div class="pname"><h3>${p.nome}</h3><p>${faixaTexto(p)}</p></div>
+      <div class="reading"><span class="val">${valor}</span>${chip}</div>
+    </div>
+    <div class="scale" style="--n:${n}" role="img" aria-label="${rotuloEscala}">
+      <span class="ideal-box" style="left:${esq.toFixed(2)}%;right:${dir.toFixed(2)}%"></span>
+      ${pin}
+      <div class="sw-row">${sw}</div>
+      <div class="lb-row">${lb}</div>
+    </div>
+    ${meta}
+  </article>`;
+}
+
+function cartaoAmostra(L) {
+  const lin = L.pontos.agua;
+  if (!lin) return `<div class="sample"><div class="sample-sw"></div><div><p class="eyebrow">Cor da amostra</p><p class="rgb">Não deu para ler a amostra nesta foto.</p></div></div>`;
+  const rgb = lin.map(v => Math.round(toSrgb(v)));
+  return `<div class="sample"><div class="sample-sw" style="background:${L.hexPonto.agua}"></div>` +
+    `<div><p class="eyebrow">Cor da amostra</p><p class="hex">${L.hexPonto.agua}</p><p class="rgb">RGB ${rgb.join(", ")}</p></div></div>`;
+}
+
+/* ---------- Canvas ---------- */
+let rafDesenho = 0;
+function pedirDesenho() { if (!rafDesenho) rafDesenho = requestAnimationFrame(() => { rafDesenho = 0; desenhar(); }); }
+
+function desenhar() {
+  const est = atual();
+  if (!est || !est.src) return;
+  const maxW = stage.clientWidth;
+  if (!maxW) return;
+  const maxH = Math.min(window.innerHeight * 0.62, 640);
+  let w = maxW, h = maxW * est.h / est.w;
+  if (h > maxH) { h = maxH; w = h * est.w / est.h; }
+  w = Math.floor(w); h = Math.floor(h);
+  const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  cv.style.width = w + "px"; cv.style.height = h + "px";
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(est.src, 0, 0, w, h);
+
+  const s = w / est.w, r = Math.max(5, raioDe(est) * s);
+  const cores = { accent: cssVar("--verde") || "#00FFBB", accentInk: cssVar("--navy") || "#00103E", escuro: "rgba(0, 16, 62, 0.92)" };
+  const itens = [];
+  for (const p of MODOS[est.id].pontos) {
+    const m = est.marcas[p.id];
+    if (m) itens.push({ x: m.x * s, y: m.y * s, tag: p.tag, ativo: false, previa: false });
+  }
+  // Primeiro os anéis; depois as etiquetas, que desviam umas das outras e dos anéis vizinhos.
+  itens.forEach(it => anel(it, r, cores));
+  const aneis = itens.map(it => ({ x: it.x - r - 3, y: it.y - r - 3, w: 2 * r + 6, h: 2 * r + 6 }));
+  const ocupados = [];
+  // Com o eixo da fita conhecido, as etiquetas ficam ao lado da fita, sem cobrir os blocos.
+  const ex = est.eixo, off = ex ? ex.meia * s + 12 : 0;
+  let lado = 1;
+  if (ex) {
+    const cabe = sg => itens.filter(it => { const px = it.x + sg * ex.nx * off, py = it.y + sg * ex.ny * off; return px > 28 && px < w - 28 && py > 12 && py < h - 12; }).length;
+    lado = cabe(1) >= cabe(-1) ? 1 : -1;
+  }
+  itens.forEach((it, i) => {
+    const pref = ex && !it.previa ? { nx: lado * ex.nx, ny: lado * ex.ny, off } : null;
+    etiqueta(it, r, cores, w, h, ocupados.concat(aneis.filter((_, j) => j !== i)), ocupados, pref);
+  });
+}
+
+function anel(it, r, cores) {
+  const cor = it.ativo ? cores.accent : cores.escuro;
+  ctx.save();
+  ctx.setLineDash(it.previa ? [5, 4] : []);
+  ctx.beginPath(); ctx.arc(it.x, it.y, r, 0, Math.PI * 2);
+  ctx.lineWidth = 4; ctx.strokeStyle = "rgba(255, 255, 255, 0.95)"; ctx.stroke();
+  ctx.lineWidth = 2; ctx.strokeStyle = cor; ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(it.x, it.y, 1.8, 0, Math.PI * 2); ctx.fillStyle = cor; ctx.fill();
+  ctx.restore();
+}
+
+function etiqueta(it, r, cores, W, H, obstaculos, ocupados, pref) {
+  ctx.save();
+  ctx.font = '800 13px "Sofia Sans", system-ui, sans-serif';
+  const pw = ctx.measureText(it.tag).width + 12, ph = 20, k = r * 0.72;
+  const opcoes = [
+    [it.x + k + 3, it.y - k - ph],
+    [it.x + k + 3, it.y + k + 2],
+    [it.x - k - pw - 3, it.y - k - ph],
+    [it.x - k - pw - 3, it.y + k + 2],
+  ];
+  // ao lado da fita: primeiro no lado escolhido; se não couber, do outro lado
+  const lados = pref ? [1, -1].map(sg => {
+    const nx = sg * pref.nx, ny = sg * pref.ny, px = it.x + nx * pref.off, py = it.y + ny * pref.off, deLado = Math.abs(nx) >= Math.abs(ny);
+    return { nx, ny, deLado, pos: deLado ? [nx > 0 ? px : px - pw, py - ph / 2] : [px - pw / 2, ny > 0 ? py : py - ph] };
+  }) : [];
+  opcoes.unshift(...lados.map(l => l.pos));
+  const cabe = ([x, y]) => x >= 2 && y >= 2 && x + pw <= W - 2 && y + ph <= H - 2;
+  const livre = ([x, y]) => !obstaculos.some(o => x < o.x + o.w + 2 && x + pw + 2 > o.x && y < o.y + o.h + 2 && y + ph + 2 > o.y);
+  const escolhida = opcoes.find(o => cabe(o) && livre(o)) || opcoes.find(cabe) || opcoes[0];
+  const [lx, ly] = escolhida;
+  ocupados.push({ x: lx, y: ly, w: pw, h: ph });
+  const fio = lados.find(l => l.pos === escolhida);
+  if (fio) {
+    // fio ligando o ponto à etiqueta ao lado da fita
+    const x2 = fio.deLado ? (fio.nx > 0 ? lx : lx + pw) : lx + pw / 2, y2 = fio.deLado ? ly + ph / 2 : (fio.ny > 0 ? ly : ly + ph);
+    ctx.beginPath(); ctx.moveTo(it.x + fio.nx * (r + 2), it.y + fio.ny * (r + 2)); ctx.lineTo(x2, y2);
+    ctx.lineWidth = 4; ctx.strokeStyle = "rgba(255, 255, 255, 0.9)"; ctx.stroke();
+    ctx.lineWidth = 1.75; ctx.strokeStyle = it.ativo ? cores.accent : cores.escuro; ctx.stroke();
+  }
+  ctx.globalAlpha = it.previa ? 0.75 : 1;
+  ctx.fillStyle = it.ativo ? cores.accent : cores.escuro;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(lx, ly, pw, ph, 6); else ctx.rect(lx, ly, pw, ph);
+  ctx.fill();
+  ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(255, 255, 255, 0.9)"; ctx.stroke();
+  ctx.fillStyle = it.ativo ? cores.accentInk : "#FFFFFF";
+  ctx.textBaseline = "middle";
+  ctx.fillText(it.tag, lx + 6, ly + ph / 2 + 0.5);
+  ctx.restore();
+}
+
+/* ---------- Utilidades de imagem ---------- */
+const cinza = v => [toLin(v), toLin(v), toLin(v)];
+function mistura(h1, h2, t) {
+  const a = linToLab(hexToRgb(h1).map(toLin)), b = linToLab(hexToRgb(h2).map(toLin));
+  return labToLin(a.map((v, i) => v + (b[i] - v) * t));
+}
+function sorteio(seed) {
+  return () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function novaTela(W, H) { const c = document.createElement("canvas"); c.width = W; c.height = H; return [c, c.getContext("2d", { willReadFrequently: true })]; }
+
+/* ---------- Leitura automática ----------
+   Fita: acha os blocos coloridos que estão alinhados, segue o eixo da fita,
+   separa os blocos pela mudança de cor e decide qual bloco é cada parâmetro
+   pela cor mais parecida com a cartela (com leve preferência pela ordem da
+   cartela). Só a cor dos blocos entra na leitura; o fundo não conta.
+   Água: a amostra fica no trecho mais uniforme perto do centro da foto. */
+function dist2(p, q) { const a = p[0] - q[0], b = p[1] - q[1], c = p[2] - q[2]; return a * a + b * b + c * c; }
+
+// Reduz a foto, acha o branco (pixels mais claros) e o fundo (moldura), e passa tudo para Lab.
+function analisar(src, lado) {
+  const s = Math.min(1, (lado || 420) / Math.max(src.width, src.height));
+  const w = Math.max(8, Math.round(src.width * s)), h = Math.max(8, Math.round(src.height * s)), n = w * h;
+  const [, g] = novaTela(w, h);
+  g.imageSmoothingQuality = "high";
+  g.drawImage(src, 0, 0, w, h);
+  const d = g.getImageData(0, 0, w, h).data, Y = new Float32Array(n), hist = new Uint32Array(256);
+  for (let i = 0; i < n; i++) {
+    const k = i * 4, y = 0.2126 * LIN[d[k]] + 0.7152 * LIN[d[k + 1]] + 0.0722 * LIN[d[k + 2]];
+    Y[i] = y; hist[Math.min(255, Math.floor(y * 256))]++;
+  }
+  const quantil = q => { let acc = 0; for (let b = 0; b < 256; b++) { acc += hist[b]; if (acc >= q * n) return b / 256; } return 1; };
+  // branco: pixels perto do mais claro da foto, e só a metade mais neutra deles
+  // (assim um fundo escuro ou colorido não entra na conta)
+  const yTopo = quantil(0.995) + 1 / 256;
+  let cand = [];
+  for (let i = 0; i < n; i++) if (Y[i] >= 0.72 * yTopo && Y[i] <= yTopo) cand.push(i);
+  if (cand.length > 20000) { const p = Math.ceil(cand.length / 20000); cand = cand.filter((_, j) => j % p === 0); }
+  const sat = i => { const k = i * 4, r = LIN[d[k]], g = LIN[d[k + 1]], b = LIN[d[k + 2]], m = Math.max(r, g, b); return m > 0 ? (m - Math.min(r, g, b)) / m : 1; };
+  const neutros = cand.map(i => [sat(i), i]).sort((p, q) => p[0] - q[0]).slice(0, Math.max(1, Math.ceil(cand.length / 2)));
+  let sr = 0, sg = 0, sb = 0;
+  for (const [, i] of neutros) { const k = i * 4; sr += LIN[d[k]]; sg += LIN[d[k + 1]]; sb += LIN[d[k + 2]]; }
+  const branco = cand.length ? [sr / neutros.length, sg / neutros.length, sb / neutros.length] : null;
+  const L = new Float32Array(n), A = new Float32Array(n), B = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const k = i * 4, lab = linToLab(equilibrar([LIN[d[k]], LIN[d[k + 1]], LIN[d[k + 2]]], branco));
+    L[i] = lab[0]; A[i] = lab[1]; B[i] = lab[2];
+  }
+  const bw = Math.max(2, Math.round(Math.min(w, h) * 0.03)), vs = [[], [], []];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if ((x >= bw && x < w - bw && y >= bw && y < h - bw) || (x + 2 * y) % 3) continue;
+    const i = y * w + x; vs[0].push(L[i]); vs[1].push(A[i]); vs[2].push(B[i]);
+  }
+  const med = v => { v.sort((p, q) => p - q); return v.length ? v[v.length >> 1] : 0; };
+  const fundo = [med(vs[0]), med(vs[1]), med(vs[2])];
+  return { w, h, s, n, L, A, B, fundo, fundoCor: Math.hypot(fundo[1], fundo[2]) >= 8 };
+}
+
+// Cor de bloco: tem cor (não é branco nem cinza), não é preto e não é o fundo colorido.
+function ehBloco(an, l, a, b) {
+  if (l <= 18 || a * a + b * b <= 81) return false;
+  if (!an.fundoCor) return true;
+  const dl = l - an.fundo[0], da = a - an.fundo[1], db = b - an.fundo[2];
+  return dl * dl + da * da + db * db > 225;
+}
+
+function mascaraBlocos(an) {
+  const { w, h, n, L, A, B } = an, m = new Uint8Array(n), corte = new Uint8Array(n);
+  for (let i = 0; i < n; i++) if (ehBloco(an, L[i], A[i], B[i])) m[i] = 1;
+  // corta onde a cor muda de repente: separa blocos colados
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = y * w + x;
+    if (!m[i]) continue;
+    for (const j of [x + 1 < w ? i + 1 : -1, y + 1 < h ? i + w : -1]) {
+      if (j < 0 || !m[j]) continue;
+      const dl = L[i] - L[j], da = A[i] - A[j], db = B[i] - B[j];
+      if (dl * dl + da * da + db * db > 144) corte[i] = corte[j] = 1;
+    }
+  }
+  for (let i = 0; i < n; i++) if (corte[i]) m[i] = 0;
+  // abertura (erode e dilata) para tirar pontinhos soltos
+  const er = new Uint8Array(n), di = new Uint8Array(n);
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x; er[i] = m[i] & m[i - 1] & m[i + 1] & m[i - w] & m[i + w]; }
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x; di[i] = er[i] | er[i - 1] | er[i + 1] | er[i - w] | er[i + w]; }
+  return di;
+}
+
+function componentes(an, m) {
+  const { w, h, n } = an, rot = new Int32Array(n).fill(-1), fila = new Int32Array(n), lista = [];
+  for (let i0 = 0; i0 < n; i0++) {
+    if (!m[i0] || rot[i0] >= 0) continue;
+    const id = lista.length;
+    let ini = 0, fim = 0, area = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, x0 = w, y0 = h, x1 = 0, y1 = 0, borda = false;
+    fila[fim++] = i0; rot[i0] = id;
+    while (ini < fim) {
+      const i = fila[ini++], x = i % w, y = (i - x) / w;
+      area++; sx += x; sy += y; sxx += x * x; syy += y * y; sxy += x * y;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      if (x < 2 || y < 2 || x > w - 3 || y > h - 3) borda = true;
+      if (x > 0 && m[i - 1] && rot[i - 1] < 0) { rot[i - 1] = id; fila[fim++] = i - 1; }
+      if (x < w - 1 && m[i + 1] && rot[i + 1] < 0) { rot[i + 1] = id; fila[fim++] = i + 1; }
+      if (y > 0 && m[i - w] && rot[i - w] < 0) { rot[i - w] = id; fila[fim++] = i - w; }
+      if (y < h - 1 && m[i + w] && rot[i + w] < 0) { rot[i + w] = id; fila[fim++] = i + w; }
+    }
+    const cx = sx / area, cy = sy / area;
+    const vxx = sxx / area - cx * cx, vyy = syy / area - cy * cy, vxy = sxy / area - cx * cy;
+    const meio = (vxx + vyy) / 2, raiz = Math.sqrt(Math.max(0, meio * meio - (vxx * vyy - vxy * vxy)));
+    const ang = 0.5 * Math.atan2(2 * vxy, vxx - vyy);
+    lista.push({ area, cx, cy, ux: Math.cos(ang), uy: Math.sin(ang),
+      comp: Math.sqrt(12 * (meio + raiz)), larg: Math.sqrt(12 * Math.max(0.08, meio - raiz)),
+      fill: area / ((x1 - x0 + 1) * (y1 - y0 + 1)), borda });
+  }
+  return lista;
+}
+
+// Retas candidatas: grupos de blocos de tamanho parecido em sequência, da mais provável para a menos.
+// Todas são testadas depois: a melhor nota nem sempre é a fita (a borda de um azulejo, por exemplo,
+// parece uma fileira de blocos), então a escolha final é pela cor de cada bloco na cartela.
+function linhasCandidatas(bl, max = 120) {
+  const todas = [], idx = new Map(bl.map((b, i) => [b, i]));
+  const avaliar = (cx, cy, ux, uy, tam) => {
+    const nx = -uy, ny = ux, membros = [];
+    for (const b of bl) {
+      if (Math.abs((b.cx - cx) * nx + (b.cy - cy) * ny) > 0.5 * tam) continue;
+      const rel = b.larg / tam;
+      if (rel < 0.5 || rel > 2) continue;
+      const al = Math.abs(b.ux * ux + b.uy * uy), longo = b.comp > 1.6 * b.larg;
+      if (longo && al > 0.35 && al < 0.85) continue;
+      const ext = !longo ? (b.larg + b.comp) / 2 : al >= 0.85 ? b.comp : b.larg;
+      membros.push({ b, t: (b.cx - cx) * ux + (b.cy - cy) * uy, ext });
+    }
+    if (!membros.length) return;
+    membros.sort((p, q) => p.t - q.t);
+    const trechos = [[membros[0]]];
+    for (let k = 1; k < membros.length; k++) {
+      const a = membros[k - 1], b = membros[k];
+      // um vão de até ~9 blocos ainda é a mesma fita: um ou dois blocos que se misturaram com o fundo
+      // (ex.: o verde-azulado na frente da piscina) ou ficaram pequenos demais deixam um buraco na fileira
+      if ((b.t - b.ext / 2) - (a.t + a.ext / 2) > 9 * tam) trechos.push([b]);
+      else trechos[trechos.length - 1].push(b);
+    }
+    for (const tr of trechos) {
+      const blocos = tr.reduce((s, m) => s + Math.max(1, Math.round(m.ext / (1.05 * tam))), 0);
+      if (blocos < 2) continue;
+      const lg = tr.map(m => m.b.larg), media = lg.reduce((s, v) => s + v, 0) / lg.length;
+      const cv = Math.sqrt(lg.reduce((s, v) => s + (v - media) * (v - media), 0) / lg.length) / media;
+      const nota = Math.min(blocos, 10) + 0.8 * (1 - Math.min(1, cv)) + 1e-7 * tr.reduce((s, m) => s + m.b.area, 0);
+      // blocos separados contam mais que um bloco comprido sozinho (que pode ser só uma borda)
+      const prior = nota + 2 * Math.min(tr.length, 6);
+      todas.push({ nota, prior, membros: tr.map(m => m.b), tam: media, chave: tr.map(m => idx.get(m.b)).sort((p, q) => p - q).join(",") });
+    }
+  };
+  const lim = Math.min(bl.length, 40);
+  for (let i = 0; i < lim; i++) {
+    const a = bl[i];
+    if (a.comp > 1.8 * a.larg) avaliar(a.cx, a.cy, a.ux, a.uy, a.larg);
+    for (let j = i + 1; j < lim; j++) {
+      const b = bl[j], rel = a.larg / b.larg;
+      if (rel < 0.55 || rel > 1.8) continue;
+      const dx = b.cx - a.cx, dy = b.cy - a.cy, dd = Math.hypot(dx, dy), tam = (a.larg + b.larg) / 2;
+      if (dd < 0.7 * tam || dd > 14 * tam) continue;
+      avaliar(a.cx, a.cy, dx / dd, dy / dd, tam);
+    }
+  }
+  todas.sort((p, q) => q.prior - p.prior);
+  const vistas = new Set(), out = [];
+  for (const l of todas) {
+    if (vistas.has(l.chave)) continue;
+    vistas.add(l.chave); out.push(l);
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+function eixoDe(membros) {
+  if (membros.length < 2) { const b = membros[0]; return { mx: b.cx, my: b.cy, ux: b.ux, uy: b.uy }; }
+  let sa = 0, mx = 0, my = 0, sxx = 0, syy = 0, sxy = 0;
+  for (const b of membros) { sa += b.area; mx += b.area * b.cx; my += b.area * b.cy; }
+  mx /= sa; my /= sa;
+  for (const b of membros) { const dx = b.cx - mx, dy = b.cy - my; sxx += b.area * dx * dx; syy += b.area * dy * dy; sxy += b.area * dx * dy; }
+  const ang = 0.5 * Math.atan2(2 * sxy, sxx - syy);
+  return { mx, my, ux: Math.cos(ang), uy: Math.sin(ang) };
+}
+
+// Cor média ao longo do eixo (média numa faixa estreita no meio da fita).
+function perfil(an, eixo, tam, t0, t1) {
+  const { w, h, L, A, B } = an, { mx, my, ux, uy } = eixo, nx = -uy, ny = ux, q = Math.max(1, Math.round(0.22 * tam)), pts = [];
+  for (let t = t0; t <= t1; t += 0.5) {
+    let sl = 0, sa = 0, sb = 0, k = 0;
+    for (let o = -q; o <= q; o++) {
+      const x = Math.round(mx + t * ux + o * nx), y = Math.round(my + t * uy + o * ny);
+      if (x < 0 || y < 0 || x >= w || y >= h) continue;
+      const i = y * w + x; sl += L[i]; sa += A[i]; sb += B[i]; k++;
+    }
+    pts.push({ t, lab: k ? [sl / k, sa / k, sb / k] : null });
+  }
+  return pts;
+}
+
+// Divide o perfil em blocos: trechos coloridos, separados também quando a cor muda.
+// Em cima da fita vale qualquer cor, mesmo parecida com o fundo (o bloco azul na frente da piscina azul).
+// Cada pedaço guarda o comprimento da mancha inteira (run): um bloco tem ~1 bloco; o fundo depois da ponta é bem mais comprido.
+function segmentar(pts, an, tam) {
+  const brutos = [];
+  let at = null;
+  const fecha = () => { if (at) { at.lab = at.soma.map(v => v / at.k); brutos.push(at); at = null; } };
+  for (const p of pts) {
+    if (!p.lab || p.lab[0] <= 18 || p.lab[1] * p.lab[1] + p.lab[2] * p.lab[2] <= 81) { fecha(); continue; }
+    if (at && at.t1 - at.t0 >= 0.3 * tam && dist2(p.lab, at.soma.map(v => v / at.k)) > 256) fecha();
+    if (!at) at = { t0: p.t, t1: p.t, soma: [0, 0, 0], k: 0 };
+    at.t1 = p.t; at.soma[0] += p.lab[0]; at.soma[1] += p.lab[1]; at.soma[2] += p.lab[2]; at.k++;
+  }
+  fecha();
+  const juntos = [];
+  for (const s of brutos) {
+    const u = juntos[juntos.length - 1];
+    if (u && s.t0 - u.t1 < 0.2 * tam && s.t1 - u.t0 < 1.35 * tam && dist2(s.lab, u.lab) < 625) {
+      const k = u.k + s.k;
+      u.lab = u.lab.map((v, i) => (v * u.k + s.lab[i] * s.k) / k); u.k = k; u.t1 = s.t1;
+    } else juntos.push({ t0: s.t0, t1: s.t1, lab: s.lab, k: s.k });
+  }
+  const out = [];
+  for (const s of juntos) {
+    const len = s.t1 - s.t0 + 0.5;
+    if (len < 0.4 * tam) continue;
+    const partes = Math.max(1, Math.round(len / (1.05 * tam)));
+    for (let i = 0; i < partes; i++) out.push({ t: s.t0 + (len * (i + 0.5)) / partes, len: len / partes, run: len });
+  }
+  return out;
+}
+
+// Só a fita 4 em 1: 4 blocos em fila, que da ponta para o cabo são Cl, Alk, pH e DT.
+// Aceita 4 blocos seguidos, do mesmo tamanho, com espaços parecidos e cores que batem com a cartela nessa ordem.
+// Um copo, um reflexo ou outra fita não passam por essas regras, e aí nada é lido.
+const COR_MAX_FITA = 18; // diferença de cor máxima (CIEDE2000) entre cada bloco e a cartela do seu parâmetro
+// Quanto de um trecho do perfil (entre a e b) é branco da fita: claro e quase sem cor, como os vãos entre os blocos.
+function fracBranco(pts, a, b, Lref) {
+  let k = 0, ok = 0;
+  for (const q of pts) {
+    if (q.t <= a || q.t >= b || !q.lab) continue;
+    k++;
+    if (q.lab[0] >= Lref - 15 && q.lab[1] * q.lab[1] + q.lab[2] * q.lab[2] <= 144) ok++;
+  }
+  return k ? ok / k : 0;
+}
+function fitaQuatroEmUm(pads, tam, aceita, pts) {
+  const ord = pads.slice().sort((a, b) => a.t - b.t);
+  let melhor = null;
+  for (let i = 0; i + 4 <= ord.length; i++) {
+    const q = ord.slice(i, i + 4);
+    if (q.some(p => p.len < 0.5 * tam || p.len > 1.8 * tam || (p.run || p.len) > 1.8 * tam)) continue;
+    const passos = [q[1].t - q[0].t, q[2].t - q[1].t, q[3].t - q[2].t];
+    const media = (passos[0] + passos[1] + passos[2]) / 3;
+    if (passos.some(d => d < 0.9 * tam || d > 3.2 * tam || Math.abs(d - media) > 0.32 * media)) continue;
+    // na fita 4 em 1 cada bloco é separado do próximo por um trecho branco da fita
+    // (pedaços colados de uma mesma mancha comprida não contam como blocos)
+    const vaos = [0, 1, 2].map(k => (q[k + 1].t - q[k + 1].len / 2) - (q[k].t + q[k].len / 2));
+    if (vaos.some(v => v < 0.4 * tam)) continue;
+    // outro bloco antes ou depois, no mesmo ritmo (mesmo passo e mesma folga branca): é uma fita de 5 ou 6 blocos.
+    // O que vem logo depois da ponta da fita (a água da piscina, a mesa) não segue esse ritmo e não conta.
+    const folga = (vaos[0] + vaos[1] + vaos[2]) / 3;
+    // o branco da fita: a claridade típica dos vãos entre os 4 blocos
+    let Lref = null;
+    if (pts) {
+      const Ls = [];
+      for (let k = 0; k < 3; k++) for (const p of pts)
+        if (p.lab && p.t > q[k].t + q[k].len / 2 && p.t < q[k + 1].t - q[k + 1].len / 2) Ls.push(p.lab[0]);
+      if (Ls.length) { Ls.sort((a, b) => a - b); Lref = Ls[Ls.length >> 1]; }
+    }
+    // um 5º bloco de verdade fica em cima da própria fita: entre ele e os outros só tem o branco da fita.
+    // Depois da ponta da fita vem o fundo (plantas, chão, água), e o que estiver lá não conta.
+    const mesmoRitmo = (viz, ponta) => {
+      if (!viz) return false;
+      const d = Math.abs(viz.t - ponta.t), vao = d - (viz.len + ponta.len) / 2;
+      if (!(Math.abs(d - media) <= 0.35 * media && vao >= 0.5 * folga && viz.len >= 0.5 * tam && (viz.run || viz.len) <= 1.8 * tam)) return false;
+      if (Lref === null) return true;
+      const [a, b] = viz.t > ponta.t ? [ponta.t + ponta.len / 2, viz.t - viz.len / 2] : [viz.t + viz.len / 2, ponta.t - ponta.len / 2];
+      return fracBranco(pts, a, b, Lref) >= 0.6;
+    };
+    if (mesmoRitmo(ord[i - 1], q[0]) || mesmoRitmo(ord[i + 4], q[3])) continue;
+    for (const fila of [q, q.slice().reverse()]) {
+      const ds = fila.map((p, k) => estimar(CARTELA_FITA[k], p.lab).d);
+      if (ds.some(d => d > COR_MAX_FITA)) continue;
+      if (aceita && !aceita(fila)) continue;
+      const custo = ds.reduce((soma, d) => soma + d, 0);
+      if (!melhor || custo < melhor.custo) melhor = { custo, fila, ds };
+    }
+  }
+  return melhor;
+}
+
+function estatPatch(an, cx, cy, r) {
+  const { w, h, L, A, B } = an;
+  if (cx < 0 || cy < 0 || cx >= w || cy >= h) return null;
+  const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(w - 1, Math.ceil(cx + r));
+  const y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(h - 1, Math.ceil(cy + r));
+  let k = 0, sl = 0, sll = 0, sa = 0, sb = 0;
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    if ((x - cx) * (x - cx) + (y - cy) * (y - cy) > r * r) continue;
+    const i = y * w + x; sl += L[i]; sll += L[i] * L[i]; sa += A[i]; sb += B[i]; k++;
+  }
+  if (k < 3) return null;
+  const ml = sl / k;
+  return { L: ml, C: Math.hypot(sa / k, sb / k), sd: Math.sqrt(Math.max(0, sll / k - ml * ml)) };
+}
+
+// Tenta numa resolução leve; se a fita estiver pequena na foto, tenta de novo com mais detalhe.
+function detectarFita(src) {
+  const r1 = detectarFitaEm(src, 420);
+  if (r1.ok || Math.max(src.width, src.height) <= 520) return r1;
+  const r2 = detectarFitaEm(src, 900);
+  return r2.ok || Object.keys(r2.marcas).length > Object.keys(r1.marcas).length ? r2 : r1;
+}
+
+// Na fita os blocos ficam numa fila só. Numa grade de cores (como a cartela impressa no pote, mesmo
+// lida na diagonal) ou com várias fitas lado a lado, há outros blocos do mesmo tamanho perto de cada um,
+// fora da linha da fita: aí não é uma fita sozinha.
+function colunaUnica(fila, eixo, tam, bl) {
+  const { mx, my, ux, uy } = eixo, nx = -uy, ny = ux, passo = Math.abs(fila[3].t - fila[0].t) / 3;
+  let comVizinho = 0;
+  for (const p of fila) {
+    const px = mx + p.t * ux, py = my + p.t * uy;
+    const tem = bl.some(b => {
+      const dx = b.cx - px, dy = b.cy - py, ao = Math.abs(dx * ux + dy * uy), lado = Math.abs(dx * nx + dy * ny), rel = b.larg / tam;
+      return ao < 0.6 * passo && lado > 0.9 * tam && lado < 4 * tam && rel > 0.5 && rel < 1.8 && b.comp < 2.2 * tam;
+    });
+    if (tem) comVizinho++;
+  }
+  return comVizinho < 3;
+}
+
+function detectarFitaEm(src, lado) {
+  const an = analisar(src, lado), nada = { ok: false, marcas: {} };
+  // blocos bem pequenos também contam (fita longe da câmera); a checagem das cores no fim continua rígida
+  const minA = Math.max(8, an.n * 0.00006), maxA = an.n * 0.12;
+  const bl = componentes(an, mascaraBlocos(an))
+    .filter(c => c.area >= minA && c.area <= maxA && c.fill >= 0.3 && !(c.borda && c.area > an.n * 0.01))
+    .sort((p, q) => q.area - p.area).slice(0, 60);
+  // testa cada reta candidata e fica com a fita cujas cores batem melhor com a cartela
+  let melhor = null;
+  for (const linha of linhasCandidatas(bl)) {
+    const eixo = eixoDe(linha.membros), tam = linha.tam, { mx, my, ux, uy } = eixo;
+    let t0 = Infinity, t1 = -Infinity;
+    for (const b of linha.membros) {
+      const t = (b.cx - mx) * ux + (b.cy - my) * uy, al = Math.abs(b.ux * ux + b.uy * uy);
+      const ext = b.comp > 1.6 * b.larg ? (al >= 0.85 ? b.comp : b.larg) : (b.larg + b.comp) / 2;
+      t0 = Math.min(t0, t - ext / 2); t1 = Math.max(t1, t + ext / 2);
+    }
+    // lê a cor ao longo da reta, passando um pouco das pontas: acha também um bloco da ponta que não virou mancha
+    const pts = perfil(an, eixo, tam, t0 - 3.6 * tam, t1 + 3.6 * tam);
+    let pads = segmentar(pts, an, tam);
+    if (pads.length < 2) pads = linha.membros.map(b => ({ t: (b.cx - mx) * ux + (b.cy - my) * uy, len: b.larg }));
+    if (pads.length < 4) continue;
+    for (const p of pads) {
+      let sl = 0, sa = 0, sb = 0, k = 0;
+      for (const q of pts) if (q.lab && Math.abs(q.t - p.t) <= 0.25 * p.len) { sl += q.lab[0]; sa += q.lab[1]; sb += q.lab[2]; k++; }
+      p.lab = k ? [sl / k, sa / k, sb / k] : [60, 0, 0];
+    }
+    const achada = fitaQuatroEmUm(pads, tam, fila => colunaUnica(fila, eixo, tam, bl), pts);
+    if (achada && (!melhor || achada.custo < melhor.achada.custo)) melhor = { achada, eixo, tam };
+  }
+  if (!melhor) return nada;
+  const { achada, eixo, tam } = melhor, { mx, my, ux, uy } = eixo;
+  const marcas = {}, para = (x, y) => ({ x: x / an.s, y: y / an.s });
+  CARTELA_FITA.forEach((p, k) => { marcas[p.id] = para(mx + achada.fila[k].t * ux, my + achada.fila[k].t * uy); });
+  return {
+    ok: true,
+    cores: achada.ds,
+    marcas,
+    raio: 100 * 0.28 * tam / an.s / Math.min(src.width, src.height),
+    eixo: { nx: -uy, ny: ux, meia: 0.62 * tam / an.s },
+  };
+}
+
+function detectarAgua(src) {
+  const an = analisar(src), { w, h, s } = an, md = Math.min(w, h), r = Math.max(2, md * 0.035);
+  let am = null;
+  for (let gy = -3; gy <= 3; gy++) for (let gx = -3; gx <= 3; gx++) {
+    const cx = w / 2 + gx * md * 0.05, cy = h / 2 + gy * md * 0.05, st = estatPatch(an, cx, cy, r);
+    if (!st || st.L < 25) continue;
+    const nota = -st.sd - 0.6 * Math.hypot(gx, gy);
+    if (!am || nota > am.nota) am = { nota, x: cx, y: cy };
+  }
+  const marcas = {};
+  if (am) marcas.agua = { x: am.x / s, y: am.y / s };
+  return { ok: !!am, marcas, raio: 2.5 };
+}
+
+function detectar(est) {
+  try { return est.id === "fita" ? detectarFita(est.src) : detectarAgua(est.src); }
+  catch (e) { return { ok: false, marcas: {} }; }
+}
+
+function aplicarAuto(est, r) {
+  est.marcas = Object.assign({}, r.marcas);
+  est.eixo = r.eixo || null;
+  if (r.raio) est.raio = Math.min(5, Math.max(0.25, Math.round(r.raio * 4) / 4));
+  est.auto = r.ok ? "ok" : Object.keys(r.marcas).length ? "parcial" : "falhou";
+  est.ativo = MODOS[est.id].pontos.map(p => p.id).find(id => !est.marcas[id]) || null;
+}
+
+/* ---------- Fotos do usuário ---------- */
+function carregarArquivo(file) {
+  if (!file) return;
+  if (file.type && !file.type.startsWith("image/")) { toast("Esse arquivo não é uma imagem. Escolha uma foto."); return; }
+  const modo = S.modo, url = URL.createObjectURL(file), img = new Image();
+  img.onload = () => {
+    const sc = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+    const [c, g] = novaTela(Math.max(1, Math.round(img.naturalWidth * sc)), Math.max(1, Math.round(img.naturalHeight * sc)));
+    g.drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(url);
+    analisarComTela(modo, c);
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); toast("Não foi possível abrir essa foto. Tente uma imagem JPG ou PNG."); };
+  img.src = url;
+}
+
+/* ---------- Tela de análise: foto nova → carregamento → resultado ---------- */
+let analiseAtual = null;
+function analisarComTela(modo, c) {
+  if (analiseAtual) analiseAtual.fim();
+  const tela = $("#analise"), reduz = matchMedia("(prefers-reduced-motion: reduce)").matches, timers = [];
+  // prévia da foto dentro do visor
+  const pv = $("#analise-cv"), dpr = Math.min(2, window.devicePixelRatio || 1);
+  const maxW = Math.min(520, window.innerWidth - 40), maxH = Math.min(window.innerHeight * 0.45, 420);
+  let w = maxW, h = w * c.height / c.width;
+  if (h > maxH) { h = maxH; w = h * c.width / c.height; }
+  pv.width = Math.round(w * dpr); pv.height = Math.round(h * dpr);
+  pv.style.width = Math.round(w) + "px"; pv.style.height = Math.round(h) + "px";
+  const gp = pv.getContext("2d"); gp.imageSmoothingQuality = "high"; gp.drawImage(c, 0, 0, pv.width, pv.height);
+  $("#analise-titulo").textContent = modo === "fita" ? "Analisando a fita" : "Analisando a amostra";
+  const passos = modo === "fita"
+    ? ["Procurando a fita na foto", "Lendo a cor de cada bloco", "Comparando com a cartela"]
+    : ["Procurando a amostra na foto", "Lendo a cor da água", "Avaliando a aparência"];
+  $("#analise-passos").innerHTML = passos.map(t => `<li>${t}</li>`).join("");
+  const lis = [...$("#analise-passos").children];
+  tela.classList.remove("saindo");
+  tela.hidden = false;
+
+  let est = null;
+  const calcular = () => { if (!est) { est = estadoDeCanvas(modo, c, false); aplicarAuto(est, detectar(est)); } };
+  const passo = reduz ? 150 : 1050; // cada passo da análise (um pouco mais devagar)
+  timers.push(setTimeout(calcular, 60)); // a conta roda depois que a tela já apareceu
+  lis.forEach((li, i) => timers.push(setTimeout(() => { if (i) lis[i - 1].className = "feito"; li.className = "ativo"; }, i * passo)));
+  timers.push(setTimeout(() => { lis[lis.length - 1].className = "feito"; }, lis.length * passo));
+  let acabou = false;
+  const ctrl = {
+    fim() {
+      if (acabou) return;
+      acabou = true;
+      timers.forEach(clearTimeout);
+      calcular();
+      S[modo] = est; S.hover = null;
+      if (S.modo === modo && S.tela === "scanner") render();
+      tela.classList.add("saindo");
+      setTimeout(() => { if (analiseAtual === ctrl) { tela.hidden = true; analiseAtual = null; } }, reduz ? 0 : 420);
+      mostrarResultado(reduz);
+    },
+  };
+  analiseAtual = ctrl;
+  tela.onclick = () => ctrl.fim();
+  timers.push(setTimeout(() => ctrl.fim(), lis.length * passo + (reduz ? 0 : 600)));
+}
+
+function mostrarResultado(reduz) {
+  const v = $("#veredito");
+  v.classList.remove("chegou"); void v.offsetWidth; v.classList.add("chegou");
+  const r = v.getBoundingClientRect();
+  if (r.bottom > window.innerHeight - 8 || r.top < 0) v.scrollIntoView({ block: "nearest", behavior: reduz ? "auto" : "smooth" });
+}
+
+/* ---------- Vídeo "Como fotografar" ---------- */
+const VIDEOS_AJUDA = {
+  fita: { src: "como-fotografar-fita.mp4", poster: "como-fotografar-fita.jpg", titulo: "Como fotografar a fita" },
+  agua: { src: "como-fotografar-agua.mp4", poster: "como-fotografar-agua.jpg", titulo: "Como fotografar a água" },
+};
+function abrirVideo() {
+  const v = VIDEOS_AJUDA[S.modo], vid = $("#video");
+  $("#video-titulo").textContent = v.titulo;
+  if (vid.getAttribute("src") !== v.src) { vid.setAttribute("poster", v.poster); vid.setAttribute("src", v.src); }
+  $("#video-modal").hidden = false;
+  try { vid.currentTime = 0; } catch (e) {}
+  const p = vid.play();
+  if (p && p.catch) p.catch(() => {});
+  $("#video-fechar").focus();
+}
+function fecharVideo() {
+  const m = $("#video-modal");
+  if (m.hidden) return;
+  $("#video").pause();
+  m.hidden = true;
+  $("#btn-video").focus();
+}
+
+/* ---------- Câmera ---------- */
+// Onde o navegador deixa a página usar a câmera, ela pede a permissão e mostra a imagem ao vivo.
+// Onde a página está dentro de outra que bloqueia a câmera (como no Claude), o botão abre a câmera
+// do próprio aparelho (no celular) ou a escolha de arquivo (no computador).
+const CAM = { stream: null, frente: false, pedido: 0 };
+const toque = () => matchMedia("(pointer: coarse)").matches;
+function cameraAoVivoPossivel() {
+  if (!window.isSecureContext || !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) return false;
+  const fp = document.permissionsPolicy || document.featurePolicy;
+  if (fp && typeof fp.allowsFeature === "function") { try { return fp.allowsFeature("camera"); } catch (e) {} }
+  try { return window.self === window.top; } catch (e) { return false; }
+}
+function abrirCamera() {
+  if (!cameraAoVivoPossivel()) { escolherArquivo("camera"); return; }
+  esconderAvisoApp();
+  $("#camera-dica").textContent = S.modo === "fita" ? "Enquadre só a fita, bem de perto" : "Copo no centro, visto de cima";
+  $("#camera").hidden = false;
+  document.documentElement.classList.add("travado");
+  ligarCamera();
+  $("#camera-fechar").focus({ preventScroll: true });
+}
+function pararStream() {
+  if (CAM.stream) CAM.stream.getTracks().forEach(t => t.stop());
+  CAM.stream = null;
+  $("#camera-video").srcObject = null;
+}
+async function ligarCamera() {
+  const pedido = ++CAM.pedido, video = $("#camera-video");
+  pararStream();
+  estadoCamera("espera");
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: false,
+      video: { facingMode: { ideal: CAM.frente ? "user" : "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } });
+    if (pedido !== CAM.pedido || $("#camera").hidden) { stream.getTracks().forEach(t => t.stop()); return; }
+    CAM.stream = stream;
+    video.srcObject = stream;
+    await video.play().catch(() => {});
+    estadoCamera(null);
+    $("#camera-disparo").focus({ preventScroll: true });
+    navigator.mediaDevices.enumerateDevices()
+      .then(ds => { $("#camera-girar").hidden = ds.filter(d => d.kind === "videoinput").length < 2; })
+      .catch(() => {});
+  } catch (err) {
+    if (pedido === CAM.pedido && !$("#camera").hidden) estadoCamera("erro", err);
+  }
+}
+function estadoCamera(tipo, err) {
+  const el = $("#camera-estado");
+  $("#camera-disparo").disabled = !!tipo;
+  if (!tipo) { el.hidden = true; el.innerHTML = ""; return; }
+  el.hidden = false;
+  if (tipo === "espera") {
+    el.innerHTML = `<p class="t">Abrindo a câmera…</p><p class="s">Se aparecer um pedido de permissão, ${toque() ? "toque" : "clique"} em <b>Permitir</b>.</p>`;
+    return;
+  }
+  // dentro de um app (sem barra de endereço para liberar a câmera): fecha e mostra o aviso com o link
+  if (dentroDeApp()) { fecharCamera(false); mostrarAvisoApp("camera"); return; }
+  const nome = err && err.name;
+  const s = nome === "NotAllowedError" || nome === "SecurityError"
+      ? `A câmera não foi liberada. Para liberar, ${toque() ? "toque" : "clique"} no cadeado ao lado do endereço do site e permita a câmera.`
+    : nome === "NotFoundError" || nome === "OverconstrainedError" ? "Nenhuma câmera foi encontrada neste aparelho."
+    : nome === "NotReadableError" || nome === "AbortError" ? "A câmera está sendo usada por outro aplicativo. Feche o outro app e tente de novo."
+    : "A câmera não abriu.";
+  const botoes = toque()
+    ? `<button type="button" class="btn verde" data-acao="nativa">Usar a câmera do celular</button><button type="button" class="btn ciano" data-acao="galeria">Escolher da galeria</button>`
+    : `<button type="button" class="btn verde" data-acao="de-novo">Tentar de novo</button><button type="button" class="btn ciano" data-acao="galeria">Escolher uma foto</button>`;
+  el.innerHTML = `<p class="t">Não deu para abrir a câmera</p><p class="s">${s}</p><div class="botoes">${botoes}</div>`;
+  el.querySelector("button").focus({ preventScroll: true });
+}
+function fecharCamera(focar) {
+  const m = $("#camera");
+  if (m.hidden) return;
+  CAM.pedido++;
+  pararStream();
+  m.hidden = true;
+  document.documentElement.classList.remove("travado");
+  if (focar && !$("#btn-camera").hidden) $("#btn-camera").focus({ preventScroll: true });
+}
+function tirarFoto() {
+  const v = $("#camera-video");
+  if (!CAM.stream || !v.videoWidth) return;
+  const sc = Math.min(1, 1600 / Math.max(v.videoWidth, v.videoHeight));
+  const [c, g] = novaTela(Math.max(1, Math.round(v.videoWidth * sc)), Math.max(1, Math.round(v.videoHeight * sc)));
+  g.drawImage(v, 0, 0, c.width, c.height);
+  $("#camera-disparo").disabled = true;
+  const fl = $("#camera-flash"), reduz = matchMedia("(prefers-reduced-motion: reduce)").matches, modo = S.modo;
+  fl.classList.remove("ativo"); void fl.offsetWidth; if (!reduz) fl.classList.add("ativo");
+  setTimeout(() => { fecharCamera(false); analisarComTela(modo, c); }, reduz ? 0 : 230);
+}
+
+// Câmera do aparelho ou galeria pelo seletor de arquivos. Dentro de apps (como o app do Claude
+// no celular) o seletor costuma não abrir: o aviso aparece na hora, com o link para abrir no
+// navegador e um quadro para colar uma foto. Ele também aparece quando o seletor é cancelado
+// sem ter aberto (é o que o app faz no Android) ou, no Android, quando nada abre em 2 s.
+const LINK_AQUA = /^https?:$/.test(location.protocol) ? location.origin + location.pathname : "https://claude.ai/artifact/45uT5GPcdJ15rac8z2HgaQ";
+function dentroDeApp() {
+  const ua = navigator.userAgent || "";
+  if (/Android/i.test(ua)) return /; wv\)/.test(ua) || /\bClaude\b/i.test(ua);
+  if (/iPhone|iPad|iPod/i.test(ua)) return !/Safari\//.test(ua) || /\bClaude\b/i.test(ua);
+  return false;
+}
+let vigiaT = 0, escolha = null;
+function escolherArquivo(qual) {
+  esconderAvisoApp();
+  const e = escolha = { qual, t0: performance.now(), abriu: false };
+  const marcar = () => { e.abriu = true; };
+  window.addEventListener("blur", marcar, { once: true });
+  document.addEventListener("visibilitychange", marcar, { once: true });
+  setTimeout(() => { window.removeEventListener("blur", marcar); document.removeEventListener("visibilitychange", marcar); }, 5000);
+  if (dentroDeApp()) mostrarAvisoApp(qual);
+  else if (/Android/i.test(navigator.userAgent)) {
+    vigiaT = setTimeout(() => {
+      if (escolha === e && !e.abriu && document.visibilityState === "visible" && document.hasFocus()) mostrarAvisoApp(qual);
+    }, 2000);
+  }
+  $(qual === "camera" ? "#in-camera" : "#in-galeria").click();
+}
+function seletorCancelado() {
+  const e = escolha;
+  // cancelado logo de cara, sem a página perder o foco: o seletor nem chegou a abrir
+  if (e && !e.abriu && performance.now() - e.t0 < 1500) { mostrarAvisoApp(e.qual); return; }
+  esconderAvisoApp();
+}
+function mostrarAvisoApp(qual) {
+  const a = $("#aviso-app");
+  if (S.tela !== "scanner" || atual()) return;
+  $("#link-aqua").hidden = true;
+  a.hidden = false;
+  $("#aviso-app-t").textContent = `${qual === "camera" ? "A câmera" : "A galeria"} não abriu?`;
+}
+function esconderAvisoApp() { clearTimeout(vigiaT); $("#aviso-app").hidden = true; }
+
+// Copia o link do Aqua para abrir no navegador. Se o app não deixar copiar, o link aparece num campo.
+function copiarLink() {
+  const campo = $("#link-aqua");
+  const feito = () => { campo.hidden = true; toast("Link copiado. Cole no Chrome ou no Safari."); };
+  const manual = () => { campo.value = LINK_AQUA; campo.hidden = false; campo.focus(); campo.select(); toast("Toque e segure o link para copiar."); };
+  const jeitoAntigo = () => {
+    const t = document.createElement("textarea");
+    t.value = LINK_AQUA; t.setAttribute("readonly", ""); t.className = "vh";
+    document.body.appendChild(t); t.select(); t.setSelectionRange(0, LINK_AQUA.length);
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) {}
+    t.remove(); $("#btn-copiar-link").focus({ preventScroll: true });
+    return ok;
+  };
+  try {
+    navigator.clipboard.writeText(LINK_AQUA).then(feito, () => (jeitoAntigo() ? feito() : manual()));
+  } catch (e) { jeitoAntigo() ? feito() : manual(); }
+}
+
+// Foto colada (Ctrl+V no computador, ou "Colar" no quadro do aviso, no celular).
+function imagemColada(dt) {
+  if (!dt) return null;
+  const f = [...(dt.files || [])].find(x => x.type.startsWith("image/"));
+  if (f) return f;
+  for (const it of [...(dt.items || [])]) {
+    if (it.kind === "file" && it.type.startsWith("image/")) { const g = it.getAsFile(); if (g) return g; }
+  }
+  return null;
+}
+function usarFotoColada(f) {
+  const q = $("#colar");
+  q.textContent = "";
+  if (document.activeElement === q) q.blur();
+  esconderAvisoApp();
+  carregarArquivo(f);
+}
+
+/* ---------- Ações ---------- */
+let toastT = 0;
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.hidden = false;
+  clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2600);
+}
+
+function textoLeitura() {
+  const est = atual(), L = ler(est), modo = MODOS[S.modo];
+  const quando = new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+  const out = [`Aqua · ${modo.nome} · ${quando}`];
+  const v = veredito(est, L);
+  out.push(`Resultado: ${v.titulo}${v.falha ? "" : ` (nível ${v.nivel} de 5)`}${v.sub ? ". " + v.sub : ""}`);
+  (v.dicas || []).forEach(d => out.push(`- ${d.rotulo} ${d.texto}`));
+  if (S.modo === "agua") {
+    const lin = L.pontos.agua;
+    out.push(lin ? `Cor da amostra: ${L.hexPonto.agua} (RGB ${lin.map(v => Math.round(toSrgb(v))).join(", ")})` : "Cor da amostra: não lida");
+  }
+  for (const r of L.params) {
+    const p = r.p, un = p.unidade ? " " + p.unidade : "";
+    if (p.niveis) {
+      const na = nivelAgua(r);
+      out.push(!r.lido ? `${p.nome}: não lida` : na.fora ? `${p.nome}: fora da cartela · cor ${r.hex}`
+        : `${p.nome}: nível ${na.nivel} de 5 (${AGUA_NIVEIS[na.nivel].nome.toLowerCase()}) · cor ${r.hex}`);
+      continue;
+    }
+    out.push(r.lido ? `${p.nome}: ${valorTexto(p, r)}${un} · ${ROTULO[r.status].toLowerCase()} (${faixaTexto(p).toLowerCase()}) · cor ${r.hex}` : `${p.nome}: não lido`);
+  }
+  if (S.modo === "agua") for (const e of estimativasAgua(L.params[0])) {
+    const p = e.p, un = p.unidade ? " " + p.unidade : "";
+    out.push(e.lido ? `${p.nome}: ${valorTexto(p, e)}${un} · ${ROTULO[e.status].toLowerCase()} (${faixaTexto(p).toLowerCase()}) · estimado pela cor da água` : `${p.nome}: sem estimativa`);
+  }
+  return out.join("\n");
+}
+
+function copiar() {
+  const txt = textoLeitura(), area = $("#copia");
+  const plano = () => { area.value = txt; area.hidden = false; area.focus(); area.select(); toast("Selecione o texto abaixo e copie."); };
+  try {
+    navigator.clipboard.writeText(txt).then(() => { area.hidden = true; toast("Leitura copiada"); }, plano);
+  } catch (e) { plano(); }
+}
+
+/* ---------- Telas: início e scanner (escolhidas pelo # do endereço) ---------- */
+function rota(focar) {
+  fecharCamera(false);
+  const vm = $("#video-modal");
+  if (!vm.hidden) { $("#video").pause(); vm.hidden = true; }
+  const alvo = location.hash.slice(1);
+  if (MODOS[alvo]) abrirModo(alvo, focar); else mostrarInicio(focar);
+}
+function mostrarInicio(focar) {
+  S.tela = "inicio"; S.hover = null;
+  $("#tela-scanner").hidden = true;
+  $("#tela-inicio").hidden = false;
+  window.scrollTo(0, 0);
+  if (focar) $("#inicio-titulo").focus({ preventScroll: true });
+}
+function abrirModo(modo, focar) {
+  S.tela = "scanner"; S.modo = modo; S.hover = null;
+  $("#copia").hidden = true;
+  $("#tela-inicio").hidden = true;
+  $("#tela-scanner").hidden = false;
+  render();
+  window.scrollTo(0, 0);
+  if (focar) $("#modo-titulo").focus({ preventScroll: true });
+}
+
+/* ---------- Eventos ---------- */
+window.addEventListener("hashchange", () => rota(true));
+
+$("#btn-camera").addEventListener("click", abrirCamera);
+$("#btn-galeria").addEventListener("click", () => escolherArquivo("galeria"));
+["#in-camera", "#in-galeria"].forEach(sel => {
+  $(sel).addEventListener("change", ev => {
+    esconderAvisoApp();
+    carregarArquivo(ev.target.files && ev.target.files[0]);
+    ev.target.value = "";
+  });
+  $(sel).addEventListener("cancel", seletorCancelado);
+});
+$("#vazio-scan").addEventListener("click", abrirCamera);
+$("#camera-fechar").addEventListener("click", () => fecharCamera(true));
+$("#camera-disparo").addEventListener("click", tirarFoto);
+$("#camera-girar").addEventListener("click", () => { CAM.frente = !CAM.frente; ligarCamera(); });
+$("#camera-estado").addEventListener("click", ev => {
+  const b = ev.target.closest("[data-acao]");
+  if (!b) return;
+  if (b.dataset.acao === "de-novo") { ligarCamera(); return; }
+  fecharCamera(false);
+  escolherArquivo(b.dataset.acao === "nativa" ? "camera" : "galeria");
+});
+// "Fazer novo teste": a tela de carregamento cobre a página, o teste anterior é limpo por trás e ela sai.
+let novoEmCurso = false;
+$("#btn-novo").addEventListener("click", () => {
+  if (novoEmCurso) return;
+  novoEmCurso = true;
+  const modo = S.modo;
+  rodarCarregamento(novaTelaCarregamento("Preparando um novo teste"), {
+    aoCobrir() {
+      S[modo] = null;
+      $("#copia").hidden = true;
+      render();
+      window.scrollTo({ top: 0, behavior: "auto" });
+    },
+    aoSair() {
+      novoEmCurso = false;
+      if (!$("#btn-camera").hidden) $("#btn-camera").focus({ preventScroll: true });
+    },
+  });
+});
+$("#btn-copiar").addEventListener("click", copiar);
+// no placar, tocar num parâmetro leva até a linha dele (com um destaque rápido)
+$("#placar").addEventListener("click", ev => {
+  const b = ev.target.closest("[data-alvo]");
+  const alvo = b && document.querySelector(`#linhas .param[data-id="${b.dataset.alvo}"]`);
+  if (!alvo) return;
+  alvo.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+  alvo.classList.remove("realce"); void alvo.offsetWidth; alvo.classList.add("realce");
+});
+$("#btn-video").addEventListener("click", abrirVideo);
+$("#video-fechar").addEventListener("click", fecharVideo);
+$("#video-modal").addEventListener("click", ev => { if (ev.target.id === "video-modal") fecharVideo(); });
+document.addEventListener("keydown", ev => { if (ev.key === "Escape") { if (!$("#camera").hidden) fecharCamera(true); else fecharVideo(); } });
+const visor = $(".visor");
+visor.addEventListener("dragover", ev => { ev.preventDefault(); visor.classList.add("drop"); });
+visor.addEventListener("dragleave", () => visor.classList.remove("drop"));
+visor.addEventListener("drop", ev => {
+  ev.preventDefault(); visor.classList.remove("drop");
+  const f = [...(ev.dataTransfer?.files || [])].find(x => x.type.startsWith("image/"));
+  if (f) carregarArquivo(f);
+});
+document.addEventListener("paste", ev => {
+  if (S.tela !== "scanner") return;
+  const f = imagemColada(ev.clipboardData);
+  if (f) { ev.preventDefault(); usarFotoColada(f); return; }
+  // no quadro de colar, texto não entra; outros conteúdos seguem e são lidos no "input" abaixo
+  if (ev.target.closest && ev.target.closest("#colar")) {
+    const tipos = [...(ev.clipboardData?.types || [])];
+    if (!tipos.length || tipos.every(t => t.startsWith("text/"))) {
+      ev.preventDefault();
+      toast("Isso não é uma foto. Copie uma foto na galeria e cole de novo.");
+    }
+  }
+});
+// Alguns celulares colocam a foto colada direto no quadro, como imagem: ela é lida daqui.
+$("#colar").addEventListener("input", () => {
+  const q = $("#colar"), img = q.querySelector("img"), src = img && img.src;
+  q.textContent = "";
+  if (!src) return;
+  fetch(src).then(r => r.blob())
+    .then(b => {
+      if (b.type && !b.type.startsWith("image/")) throw new Error("não é imagem");
+      usarFotoColada(new File([b], "foto-colada", { type: b.type || "image/png" }));
+    })
+    .catch(() => toast("Não deu para usar essa foto aqui. Abra o Aqua no navegador."));
+});
+$("#btn-copiar-link").addEventListener("click", copiarLink);
+
+new ResizeObserver(() => { if (stage.clientWidth !== S.largura) { S.largura = stage.clientWidth; desenhar(); } }).observe(stage);
+window.addEventListener("resize", pedirDesenho);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(pedirDesenho);
+
+/* ---------- Início ---------- */
+rota(false);
+
+/* ---------- Tela de carregamento: ao abrir na tela inicial e ao fazer um novo teste ---------- */
+["aqua-texto.png", "aqua-gota.png"].forEach(src => { new Image().src = src; }); // já baixa o logo para o novo teste
+function novaTelaCarregamento(texto) {
+  const sp = document.createElement("div");
+  sp.className = "splash entrando";
+  sp.setAttribute("aria-hidden", "true");
+  sp.innerHTML = `<div class="splash-centro"><div class="splash-logo">` +
+    `<img class="vazio" src="aqua-texto.png" alt="" width="640" height="286">` +
+    `<img class="cheio" src="aqua-texto.png" alt="" width="640" height="286">` +
+    `<img class="gota" src="aqua-gota.png" alt="" width="640" height="286">` +
+    `</div><div class="splash-barra"><i></i></div><p class="splash-texto"></p></div>`;
+  sp.querySelector(".splash-texto").textContent = texto;
+  document.body.append(sp);
+  return sp;
+}
+// aoCobrir roda quando a tela já cobre tudo; aoSair, depois que ela some. Um toque pula a espera.
+function rodarCarregamento(sp, { aoCobrir, aoSair, esperarFontes, duracao = 2050 } = {}) {
+  const reduz = matchMedia("(prefers-reduced-motion: reduce)").matches, t0 = performance.now();
+  const minimo = reduz ? 400 : duracao;
+  let cobriu = !aoCobrir, saiu = false;
+  const cobrir = () => { if (!cobriu) { cobriu = true; aoCobrir(); } };
+  const sair = () => {
+    if (saiu) return;
+    saiu = true;
+    cobrir();
+    sp.classList.remove("entrando");
+    sp.classList.add("saindo");
+    setTimeout(() => { sp.remove(); if (aoSair) aoSair(); }, reduz ? 0 : 480);
+  };
+  sp.addEventListener("click", sair);
+  if (aoCobrir) setTimeout(cobrir, reduz ? 0 : 280);
+  const pronto = esperarFontes && document.fonts && document.fonts.ready
+    ? Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, minimo))]) : Promise.resolve();
+  pronto.then(() => setTimeout(sair, Math.max(0, minimo - (performance.now() - t0))));
+}
+{
+  const sp = document.getElementById("splash");
+  if (sp) rodarCarregamento(sp, { esperarFontes: true, duracao: 3000 }); // na abertura, um pouco mais longa
+}
+</script>
+
+<div id="sem-net" role="alertdialog" aria-modal="true" aria-labelledby="sem-net-t" hidden><div class="sem-net-caixa"><svg viewBox="0 0 64 64" width="72" height="72" aria-hidden="true"><path d="M32 6C26 18 14 28 14 41a18 18 0 0 0 36 0C50 28 38 18 32 6Z" fill="#17E1E1"/><path d="M14 52 50 16" stroke="#00103E" stroke-width="5" stroke-linecap="round"/><path d="M12 54 52 14" stroke="#FF6B6B" stroke-width="3" stroke-linecap="round"/></svg><h2 id="sem-net-t">Sem conexão com a internet</h2><p>O Aqua só funciona com internet. Ligue o Wi-Fi ou os dados móveis e tente de novo.</p><button type="button" id="sem-net-btn">Tentar de novo</button></div></div><style>#sem-net{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;padding:24px;background:#00103E;color:#fff;text-align:center}#sem-net[hidden]{display:none!important}.sem-net-caixa{max-width:340px}#sem-net h2{margin:18px 0 8px;font-size:24px;line-height:1.2;color:#fff}#sem-net p{margin:0 0 22px;font-size:16px;line-height:1.5;color:#AEB8D3}#sem-net button{min-height:48px;padding:0 26px;border:0;border-radius:999px;background:#17E1E1;color:#00103E;font-weight:800;font-size:16px;cursor:pointer}</style><script>{ const tela = document.getElementById("sem-net"); const checar = () => { const off = !navigator.onLine; tela.hidden = !off; document.documentElement.classList.toggle("sem-net", off); }; addEventListener("online", checar); addEventListener("offline", checar); checar(); document.getElementById("sem-net-btn").addEventListener("click", () => { if (navigator.onLine) location.reload(); else checar(); }); }</script><script>if ("serviceWorker" in navigator && window.isSecureContext) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));</script>
+</body></html>
