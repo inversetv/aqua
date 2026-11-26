@@ -506,7 +506,7 @@ html.travado, html.travado body{ overflow:hidden; }
         </span>
         <span class="opcao-corpo">
           <span class="opcao-titulo" id="op-agua-titulo">Água direta</span>
-          <span class="opcao-texto" id="op-agua-texto">Fotografe a água num copo transparente, sobre papel branco, e veja pela cor se ela está dentro dos padrões.</span>
+          <span class="opcao-texto" id="op-agua-texto">Fotografe a água do rio ou num copo transparente e veja pela cor se ela está dentro dos padrões.</span>
         </span>
         <span class="opcao-pe">
           <span class="tg"><span class="degrade" aria-hidden="true"></span>Barrenta → limpa</span>
@@ -839,6 +839,54 @@ function equilibrar(lin, branco) {
   return lin.map((v, i) => Math.min(1, v * Math.min(6, Math.max(0.3, alvo / Math.max(branco[i], 1e-4)))));
 }
 
+// Água: o copo também escurece um pouco o que se vê por ele (reflexo nas paredes e no fundo do copo).
+const PERDA_COPO = 0.85;
+// Cor da água como se o copo estivesse sobre papel branco: a amostra dividida pela cor do fundo em volta do copo.
+function corrigirAgua(lin, ref) {
+  const alvo = toLin(PAPEL) / PERDA_COPO;
+  return lin.map((v, i) => Math.min(1, v / Math.max(ref[i], 1e-4) * alvo));
+}
+// Água: a cor da maior parte da amostra; reflexos claros (luz) ou escuros (o celular refletido) ficam de fora.
+function amostrarAgua(data, w, h, cx, cy, r) {
+  r = Math.max(r, 1.5);
+  const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(w - 1, Math.ceil(cx + r));
+  const y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(h - 1, Math.ceil(cy + r));
+  const passo = Math.max(1, Math.floor(r / 36)), px = [], r2 = r * r;
+  for (let y = y0; y <= y1; y += passo) for (let x = x0; x <= x1; x += passo) {
+    if ((x - cx) * (x - cx) + (y - cy) * (y - cy) > r2) continue;
+    const k = (y * w + x) * 4, lin = [LIN[data[k]], LIN[data[k + 1]], LIN[data[k + 2]]];
+    px.push({ lin, lab: linToLab(lin) });
+  }
+  return modaCor(px);
+}
+// Cor da maior parte de um conjunto de pixels ({lin, lab}): parte da mediana e fica com os
+// pixels parecidos com ela (reflexos e sombras ficam de fora).
+function modaCor(px) {
+  if (!px.length) return null;
+  const med = i => { const v = px.map(p => p.lab[i]).sort((a, b) => a - b); return v[v.length >> 1]; };
+  let c = [med(0), med(1), med(2)], sel = px;
+  for (let it = 0; it < 4; it++) {
+    let lim = 6, s2;
+    for (;;) {
+      s2 = px.filter(p => Math.hypot(p.lab[0] - c[0], p.lab[1] - c[1], p.lab[2] - c[2]) < lim);
+      if (s2.length >= 0.4 * px.length || lim > 40) break;
+      lim *= 1.4;
+    }
+    sel = s2.length ? s2 : px;
+    c = linToLab([0, 1, 2].map(i => sel.reduce((t, p) => t + p.lin[i], 0) / sel.length));
+  }
+  return [0, 1, 2].map(i => sel.reduce((t, p) => t + p.lin[i], 0) / sel.length);
+}
+
+// Água vista contra a luz (copo de lado, rio com sol) fica com a cor mais forte que a da cartela.
+// O que conta é o tom (marrom, âmbar) e a claridade: a cor acima da mais forte da cartela pesa só 30%.
+function suavizarCroma(lab) {
+  const C = Math.hypot(lab[1], lab[2]);
+  if (C <= 28 || C > 70) return lab;
+  const k = (28 + 0.3 * (C - 28)) / C;
+  return [lab[0], lab[1] * k, lab[2] * k];
+}
+
 // Acha o trecho da escala mais próximo da cor e interpola o valor.
 function estimar(p, lab) {
   const L = p.labs, V = p.vals;
@@ -912,18 +960,18 @@ const MODOS = {
     titulo: "Foto da amostra",
     sub: "Cor da água, da barrenta à limpa",
     icone: '<svg viewBox="0 0 24 24"><path d="M12 2.8c3.6 4.3 6.2 7.9 6.2 11a6.2 6.2 0 0 1-12.4 0c0-3.1 2.6-6.7 6.2-11z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M9.2 14.4a2.9 2.9 0 0 0 2.6 2.7" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
-    vazioTitulo: "Tire uma foto do copo com a água",
-    vazioTexto: "A cor da água é lida automaticamente.",
+    vazioTitulo: "Tire uma foto da água",
+    vazioTexto: "Do rio ou num copo (de lado ou de cima): a água é achada na foto e lida separada do fundo.",
     pontos: [
       { id: "agua", tag: "A", nome: "Água" },
     ],
     params: CARTELA_AGUA.map(p => Object.assign(p, { ponto: "agua" })),
     guia: [
-      "Encha um copo transparente com água da piscina (e o reagente, se o teste usar gotas).",
-      "Apoie o copo sobre papel branco, com luz do dia.",
-      "Fotografe de cima, sem flash, com o copo no centro da foto.",
+      "Fotografe o rio de perto, com a água ocupando boa parte da foto.",
+      "Ou ponha a água num copo transparente e fotografe de lado, com o copo inteiro na foto.",
+      "Água bem clara: copo sobre papel branco, foto de cima. Sempre sem flash e com luz do dia.",
     ],
-    nota: "Cartela de cor da água: marrom é mais poluída, clara é limpa e os tons do meio são os níveis intermediários. Cloro, alcalinidade, pH e dureza são a média de cada nível de cor (estimativas, não medidas), e o ideal de cada um é o da água limpa (nível 5). A leitura por foto depende da luz e do copo.",
+    nota: "Cartela de cor da água: marrom é mais poluída, clara é limpa e os tons do meio são os níveis intermediários. No copo visto de cima, a cor é lida no meio dele e comparada com o papel em volta; no rio e no copo de lado, é a cor da maior parte da água, sem os reflexos. Cloro, alcalinidade, pH e dureza são a média de cada nível de cor (estimativas, não medidas), e o ideal de cada um é o da água limpa (nível 5). A leitura por foto depende da luz.",
   },
 };
 
@@ -959,13 +1007,18 @@ function ler(est) {
   // só a cor de cada bloco (ou da água) conta; o fundo não entra na leitura
   const pontos = {}, hexPonto = {};
   for (const p of modo.pontos) {
-    const m = est.marcas[p.id], raw = m ? amostrar(est.data, est.w, est.h, m.x, m.y, r) : null;
+    const m = est.marcas[p.id];
+    let raw = !m ? null : est.id !== "agua" ? amostrar(est.data, est.w, est.h, m.x, m.y, r)
+      : est.corAgua ? est.corAgua.slice() : amostrarAgua(est.data, est.w, est.h, m.x, m.y, r);
+    // água: a cor é lida em relação ao fundo em volta do copo, como se o copo estivesse sobre papel branco
+    if (raw && est.id === "agua" && est.ref) raw = corrigirAgua(raw, est.ref);
     if (raw) { pontos[p.id] = raw; hexPonto[p.id] = rgbToHex(raw.map(toSrgb)); }
   }
   const params = modo.params.map(p => {
     const lin = pontos[p.ponto];
     if (!lin) return { p, lido: false };
-    const e = estimar(p, linToLab(lin));
+    // água: âmbar ou marrom muito forte (água contra a luz) conta pelo tom, não pelo excesso de cor
+    const e = estimar(p, est.id === "agua" ? suavizarCroma(linToLab(lin)) : linToLab(lin));
     const vr = arredondar(p, e.v);
     return Object.assign({ p, lido: true, hex: hexPonto[p.ponto], vr, status: situacao(p, vr) }, e);
   });
@@ -1039,10 +1092,10 @@ function renderResultado(est, L) {
     extra = {
       amostra: L.hexPonto.agua || null,
       nome: na && !na.fora ? AGUA_NIVEIS[na.nivel].nome : "",
-      semLeitura: L.hexPonto.agua ? "Cor fora da cartela" : "Amostra não lida",
-      motivo: L.hexPonto.agua ? "A cor ficou fora da cartela de cor da água, então os parâmetros não foram estimados." : "Não deu para ler a cor da amostra.",
+      semLeitura: L.hexPonto.agua ? "Cor fora da cartela" : "Água não encontrada",
+      motivo: L.hexPonto.agua ? "A cor ficou fora da cartela de cor da água, então os parâmetros não foram estimados." : "Não achei água nesta foto, então nada foi lido.",
     };
-    html = cartaoAmostra(L) + L.params.map(linhaParam).join("") + itens.map(linhaParam).join("");
+    html = cartaoAmostra(L, est) + L.params.map(linhaParam).join("") + itens.map(linhaParam).join("");
   } else {
     itens = L.params;
     extra = { semLeitura: "Fita não encontrada", motivo: "A fita 4 em 1 não foi encontrada nesta foto." };
@@ -1123,7 +1176,7 @@ function veredito(est, L) {
     if (lidos.length < N) {
       if (!lidos.length) return S.modo === "fita"
         ? { falha: true, titulo: "Fita 4 em 1 não encontrada", sub: "Aqui só é lida a fita 4 em 1 (cloro livre, alcalinidade, pH e dureza total). Tire uma foto só da fita molhada, bem de perto, sobre papel branco e na luz do dia." }
-        : { falha: true, titulo: "Não deu para ler a amostra", sub: "Tire outra foto do copo, de cima e na luz do dia." };
+        : { falha: true, titulo: "Água não encontrada", sub: "Fotografe a água de perto: no rio, ou num copo transparente, de lado e com o copo inteiro na foto. Água bem clara: copo sobre papel branco, foto de cima. Use a luz do dia." };
       const faltam = L.params.filter(r => !r.lido).map(r => r.p.curto);
       return { falha: true, titulo: "Leitura incompleta", sub: `Não deu para ler ${juntar(faltam)}. Tire outra foto, mais de perto e com boa luz.` };
     }
@@ -1145,7 +1198,7 @@ function veredito(est, L) {
   }
 
   // Água direta com a cartela vazia: só dá para mostrar a cor lida.
-  if (!L.pontos.agua) return { falha: true, titulo: "Não deu para ler a amostra", sub: "Tire outra foto do copo, de cima e na luz do dia." };
+  if (!L.pontos.agua) return { falha: true, titulo: "Água não encontrada", sub: "Fotografe a água de perto: no rio, ou num copo transparente, de lado e com o copo inteiro na foto. Água bem clara: copo sobre papel branco, foto de cima. Use a luz do dia." };
   return { falha: true, titulo: "Cartela da água vazia", sub: "A cor da amostra foi lida, mas não há cores de referência para comparar." };
 }
 
@@ -1277,12 +1330,15 @@ function linhaParam(r) {
   </article>`;
 }
 
-function cartaoAmostra(L) {
+function cartaoAmostra(L, est) {
   const lin = L.pontos.agua;
-  if (!lin) return `<div class="sample"><div class="sample-sw"></div><div><p class="eyebrow">Cor da amostra</p><p class="rgb">Não deu para ler a amostra nesta foto.</p></div></div>`;
+  if (!lin) return `<div class="sample"><div class="sample-sw"></div><div><p class="eyebrow">Cor da amostra</p><p class="rgb">Nenhuma água foi achada nesta foto.</p></div></div>`;
   const rgb = lin.map(v => Math.round(toSrgb(v)));
+  const ref = est && est.tipoAgua === "superficie" ? "Cor da maior parte da água, sem os reflexos do céu."
+    : est && est.tipoAgua === "lado" ? (est.ref ? "Cor da água dentro do copo, comparada com o fundo claro em volta." : "Cor da água dentro do copo, sem os brilhos do vidro.")
+    : est && est.ref ? "Comparada com o fundo em volta do copo." : "Sem fundo claro em volta do copo: cor lida direto da foto.";
   return `<div class="sample"><div class="sample-sw" style="background:${L.hexPonto.agua}"></div>` +
-    `<div><p class="eyebrow">Cor da amostra</p><p class="hex">${L.hexPonto.agua}</p><p class="rgb">RGB ${rgb.join(", ")}</p></div></div>`;
+    `<div><p class="eyebrow">Cor da amostra</p><p class="hex">${L.hexPonto.agua}</p><p class="rgb">RGB ${rgb.join(", ")}</p><p class="rgb">${ref}</p></div></div>`;
 }
 
 /* ---------- Canvas ---------- */
@@ -1308,6 +1364,42 @@ function desenhar() {
 
   const s = w / est.w, r = Math.max(5, raioDe(est) * s);
   const cores = { accent: cssVar("--verde") || "#00FFBB", accentInk: cssVar("--navy") || "#00103E", escuro: "rgba(0, 16, 62, 0.92)" };
+  // água: contorno do copo achado (tracejado); o que fica fora dele é o fundo
+  if (est.copo) {
+    const c = est.copo;
+    ctx.save();
+    ctx.beginPath(); ctx.ellipse(c.x * s, c.y * s, c.rx * s, c.ry * s, c.ang, 0, Math.PI * 2);
+    ctx.setLineDash([7, 5]);
+    ctx.lineWidth = 4; ctx.strokeStyle = "rgba(255, 255, 255, 0.9)"; ctx.stroke();
+    ctx.lineWidth = 2; ctx.strokeStyle = cores.escuro; ctx.stroke();
+    ctx.restore();
+  }
+  // água sem copo: o que não é água fica escurecido e a borda da água fica tracejada
+  if (est.regiao) {
+    const R = est.regiao, t = R.b * s;
+    const xs = k => (k >= R.gw ? w : k * t), ys = k => (k >= R.gh ? h : k * t);
+    const agua = (gx, gy) => gx >= 0 && gy >= 0 && gx < R.gw && gy < R.gh && R.mask[gy * R.gw + gx] === 1;
+    ctx.save();
+    ctx.fillStyle = "rgba(0, 16, 62, 0.5)";
+    ctx.beginPath();
+    for (let gy = 0; gy < R.gh; gy++) for (let gx = 0; gx < R.gw; gx++) {
+      if (!agua(gx, gy)) ctx.rect(xs(gx), ys(gy), xs(gx + 1) - xs(gx), ys(gy + 1) - ys(gy));
+    }
+    ctx.fill();
+    ctx.beginPath();
+    for (let gy = 0; gy < R.gh; gy++) for (let gx = 0; gx < R.gw; gx++) {
+      if (!agua(gx, gy)) continue;
+      const x0 = xs(gx), x1 = xs(gx + 1), y0 = ys(gy), y1 = ys(gy + 1);
+      if (gy > 0 && !agua(gx, gy - 1)) { ctx.moveTo(x0, y0); ctx.lineTo(x1, y0); }
+      if (gy < R.gh - 1 && !agua(gx, gy + 1)) { ctx.moveTo(x0, y1); ctx.lineTo(x1, y1); }
+      if (gx > 0 && !agua(gx - 1, gy)) { ctx.moveTo(x0, y0); ctx.lineTo(x0, y1); }
+      if (gx < R.gw - 1 && !agua(gx + 1, gy)) { ctx.moveTo(x1, y0); ctx.lineTo(x1, y1); }
+    }
+    ctx.setLineDash([6, 4]);
+    ctx.lineWidth = 3.5; ctx.strokeStyle = "rgba(255, 255, 255, 0.9)"; ctx.stroke();
+    ctx.lineWidth = 1.75; ctx.strokeStyle = cores.escuro; ctx.stroke();
+    ctx.restore();
+  }
   const itens = [];
   for (const p of MODOS[est.id].pontos) {
     const m = est.marcas[p.id];
@@ -1399,7 +1491,8 @@ function novaTela(W, H) { const c = document.createElement("canvas"); c.width = 
    separa os blocos pela mudança de cor e decide qual bloco é cada parâmetro
    pela cor mais parecida com a cartela (com leve preferência pela ordem da
    cartela). Só a cor dos blocos entra na leitura; o fundo não conta.
-   Água: a amostra fica no trecho mais uniforme perto do centro da foto. */
+   Água: acha a boca do copo (um anel em volta da água), lê a água no meio dele e usa o
+   fundo em volta do copo como branco de referência (veja detectarAgua). */
 function dist2(p, q) { const a = p[0] - q[0], b = p[1] - q[1], c = p[2] - q[2]; return a * a + b * b + c * c; }
 
 // Reduz a foto, acha o branco (pixels mais claros) e o fundo (moldura), e passa tudo para Lab.
@@ -1438,7 +1531,7 @@ function analisar(src, lado) {
   }
   const med = v => { v.sort((p, q) => p - q); return v.length ? v[v.length >> 1] : 0; };
   const fundo = [med(vs[0]), med(vs[1]), med(vs[2])];
-  return { w, h, s, n, L, A, B, fundo, fundoCor: Math.hypot(fundo[1], fundo[2]) >= 8 };
+  return { w, h, s, n, L, A, B, px: d, fundo, fundoCor: Math.hypot(fundo[1], fundo[2]) >= 8 };
 }
 
 // Cor de bloco: tem cor (não é branco nem cinza), não é preto e não é o fundo colorido.
@@ -1757,29 +1850,735 @@ function detectarFitaEm(src, lado) {
   };
 }
 
-function detectarAgua(src) {
-  const an = analisar(src), { w, h, s } = an, md = Math.min(w, h), r = Math.max(2, md * 0.035);
-  let am = null;
-  for (let gy = -3; gy <= 3; gy++) for (let gx = -3; gx <= 3; gx++) {
-    const cx = w / 2 + gx * md * 0.05, cy = h / 2 + gy * md * 0.05, st = estatPatch(an, cx, cy, r);
-    if (!st || st.L < 25) continue;
-    const nota = -st.sd - 0.6 * Math.hypot(gx, gy);
-    if (!am || nota > am.nota) am = { nota, x: cx, y: cy };
+/* ---------- Água direta: acha o copo e separa a água do fundo ----------
+   O copo é fotografado de cima: a boca dele é um anel (círculo, ou elipse se a foto
+   estiver um pouco inclinada) em volta da água.
+   1) Mapa de bordas: onde a cor muda de repente (na foto reduzida).
+   2) De vários centros possíveis saem raios; em cada raio ficam as bordas fortes.
+      A boca do copo aparece em quase todos os raios na mesma distância; a textura
+      do fundo (madeira, piso, papel amassado) aparece em distâncias ao acaso.
+   3) O anel achado é ajustado (círculo e depois elipse) e fica o anel mais de fora
+      (a boca do copo), não o aro do fundo do copo, que fica por dentro.
+   4) Confere: o copo inteiro está na foto com fundo em volta, a água é uniforme e
+      não é mais clara que o fundo em volta (um prato branco na mesa escura, por
+      exemplo, não passa).
+   5) O fundo em volta do copo (a parte mais clara dele, sem a sombra) vira o branco
+      de referência: a cor da água é lida em relação a ele. Assim a luz e a cor do
+      papel ou da mesa não mudam o resultado. */
+const AGUA_DET = {
+  lado: 420,        // tamanho da foto reduzida
+  borda: 2.4,       // força mínima de uma borda (diferença de cor por pixel)
+  raioMin: 0.085,   // raio mínimo da boca do copo (fração do lado menor)
+  raioMax: 0.47,    // raio máximo
+  suporte: 0.68,    // fração mínima dos raios que encontram a borda do copo
+  nota: 0.35,       // o anel tem que se destacar das bordas ao acaso
+  amostra: 0.42,    // a água é lida num círculo de 42% do raio do copo, no meio
+  faixa: [1.1, 1.8],// o fundo de referência fica nesta faixa em volta do copo
+  fundoVaria: 16,   // o fundo em volta do copo precisa ser uma superfície só (papel, mesa)
+  desvio: 0.055,    // a borda tem que ser redonda (desvio típico em relação à elipse)
+};
+
+function bordasCor(an) {
+  // força da borda (mudança de cor) e direção dela (tensor de estrutura nos 3 canais, suavizado 3x3)
+  const { w, h, L, A, B } = an, n = w * h, jxx = new Float32Array(n), jyy = new Float32Array(n), jxy = new Float32Array(n);
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const i = y * w + x;
+    const lx = L[i + 1] - L[i - 1], ax = A[i + 1] - A[i - 1], bx = B[i + 1] - B[i - 1];
+    const ly = L[i + w] - L[i - w], ay = A[i + w] - A[i - w], by = B[i + w] - B[i - w];
+    jxx[i] = lx * lx + ax * ax + bx * bx; jyy[i] = ly * ly + ay * ay + by * by; jxy[i] = lx * ly + ax * ay + bx * by;
   }
-  const marcas = {};
-  if (am) marcas.agua = { x: am.x / s, y: am.y / s };
-  return { ok: !!am, marcas, raio: 2.5 };
+  const E = new Float32Array(n), C2 = new Float32Array(n), S2 = new Float32Array(n);
+  for (let y = 2; y < h - 2; y++) for (let x = 2; x < w - 2; x++) {
+    const i = y * w + x;
+    let sxx = 0, syy = 0, sxy = 0;
+    for (let dy = -w; dy <= w; dy += w) for (let dx = -1; dx <= 1; dx++) { const j = i + dy + dx; sxx += jxx[j]; syy += jyy[j]; sxy += jxy[j]; }
+    const tr = sxx + syy + 1e-6;
+    E[i] = 0.5 * Math.sqrt(jxx[i] + jyy[i]);
+    C2[i] = (sxx - syy) / tr; S2[i] = 2 * sxy / tr; // cos e sen do dobro do ângulo do gradiente (× coerência)
+  }
+  return { E, C2, S2 };
+}
+
+// Em cada raio que sai de (cx, cy): as distâncias das bordas fortes que cruzam o raio de frente
+// (borda "em volta" do centro, como a boca do copo) e até onde o raio fica dentro da foto.
+function bordasNosRaios(an, M, cx, cy, K, rmax) {
+  const { w, h } = an, { E, C2, S2 } = M, picos = new Array(K), ate = new Float32Array(K), lim = AGUA_DET.borda;
+  for (let k = 0; k < K; k++) {
+    const t = 2 * Math.PI * k / K, c = Math.cos(t), s = Math.sin(t), c2 = Math.cos(2 * t), s2 = Math.sin(2 * t), lst = [];
+    let e1 = 0, e2 = 0, i2 = -1, fim = rmax;
+    for (let r = 1; r <= rmax + 1; r++) {
+      const x = Math.round(cx + r * c), y = Math.round(cy + r * s);
+      if (x < 2 || y < 2 || x >= w - 2 || y >= h - 2) { fim = r - 1; break; }
+      const i = y * w + x, e = E[i];
+      if (e2 >= lim && e2 >= e1 && e2 > e && C2[i2] * c2 + S2[i2] * s2 >= 0.3) {
+        const p = r - 1, u = lst.length - 1;
+        if (u >= 0 && p - lst[u][0] <= 2) { if (e2 > lst[u][1]) lst[u] = [p, e2]; }
+        else lst.push([p, e2]);
+      }
+      e1 = e2; e2 = e; i2 = i;
+    }
+    ate[k] = Math.min(fim, rmax);
+    picos[k] = lst.map(q => q[0]);
+  }
+  return { K, picos, ate };
+}
+
+// Fração dos raios com borda perto de cada distância r (só conta raio que chega até r dentro da foto).
+function curvaSuporte(P, rmin, rmax, tolDe) {
+  const n = rmax + 2, hit = new Float32Array(n), val = new Float32Array(n), marca = new Uint8Array(n), sup = new Float32Array(n);
+  for (let k = 0; k < P.K; k++) {
+    marca.fill(0);
+    for (const p of P.picos[k]) {
+      const t = tolDe(p);
+      for (let r = Math.max(0, Math.floor(p - t)); r <= Math.min(n - 1, Math.ceil(p + t)); r++) marca[r] = 1;
+    }
+    const ate = P.ate[k];
+    for (let r = rmin; r <= Math.min(rmax, ate); r++) { val[r]++; hit[r] += marca[r]; }
+  }
+  // -1: raio que sai da foto em muitos raios (não dá para avaliar)
+  for (let r = 0; r < n; r++) sup[r] = r >= rmin && r <= rmax && val[r] >= P.K * 0.7 ? hit[r] / val[r] : -1;
+  return sup;
+}
+
+// Círculo que passa mais perto dos pontos (mínimos quadrados).
+function ajustarCirculo(pts) {
+  const n = pts.length;
+  if (n < 6) return null;
+  let mx = 0, my = 0;
+  for (const [x, y] of pts) { mx += x; my += y; }
+  mx /= n; my /= n;
+  let suu = 0, svv = 0, suv = 0, suuu = 0, svvv = 0, suvv = 0, svuu = 0;
+  for (const [x, y] of pts) {
+    const u = x - mx, v = y - my;
+    suu += u * u; svv += v * v; suv += u * v;
+    suuu += u * u * u; svvv += v * v * v; suvv += u * v * v; svuu += v * u * u;
+  }
+  const det = suu * svv - suv * suv;
+  if (Math.abs(det) < 1e-9) return null;
+  const bu = 0.5 * (suuu + suvv), bv = 0.5 * (svvv + svuu);
+  const uc = (bu * svv - bv * suv) / det, vc = (bv * suu - bu * suv) / det;
+  return { x: mx + uc, y: my + vc, r: Math.sqrt(uc * uc + vc * vc + (suu + svv) / n) };
+}
+
+// Elipse que passa mais perto dos pontos (cônica geral, mínimos quadrados): devolve o centro e a forma
+// a·u² + c·u·v + b·v² = 1, com u e v medidos a partir do centro.
+function ajustarElipse(pts) {
+  const n = pts.length;
+  if (n < 10) return null;
+  let mx = 0, my = 0;
+  for (const [x, y] of pts) { mx += x; my += y; }
+  mx /= n; my /= n;
+  let esc = 0;
+  for (const [x, y] of pts) esc += Math.hypot(x - mx, y - my);
+  esc = esc / n || 1;
+  const M = Array.from({ length: 5 }, () => new Float64Array(5)), y = new Float64Array(5);
+  for (const [px, py] of pts) {
+    const u = (px - mx) / esc, v = (py - my) / esc, f = [u * u, u * v, v * v, u, v];
+    for (let i = 0; i < 5; i++) { y[i] += f[i]; for (let j = 0; j < 5; j++) M[i][j] += f[i] * f[j]; }
+  }
+  // eliminação de Gauss com pivô
+  const A = M.map((lin, i) => [...lin, y[i]]);
+  for (let c = 0; c < 5; c++) {
+    let pv = c;
+    for (let r = c + 1; r < 5; r++) if (Math.abs(A[r][c]) > Math.abs(A[pv][c])) pv = r;
+    if (Math.abs(A[pv][c]) < 1e-12) return null;
+    [A[c], A[pv]] = [A[pv], A[c]];
+    for (let r = 0; r < 5; r++) {
+      if (r === c) continue;
+      const k = A[r][c] / A[c][c];
+      for (let j = c; j <= 5; j++) A[r][j] -= k * A[c][j];
+    }
+  }
+  const [qa, qb, qc, qd, qe] = A.map((lin, i) => lin[5] / lin[i]);
+  // centro: gradiente zero
+  const det = 4 * qa * qc - qb * qb;
+  if (!(det > 1e-9)) return null;
+  const u0 = (qb * qe - 2 * qc * qd) / det, v0 = (qb * qd - 2 * qa * qe) / det;
+  const k = 1 + qa * u0 * u0 + qb * u0 * v0 + qc * v0 * v0;
+  if (!(k > 1e-9) || !(qa > 0) || !(qc > 0)) return null;
+  const e2 = esc * esc;
+  return { x: mx + u0 * esc, y: my + v0 * esc, f: { a: qa / k / e2, c: qb / k / e2, b: qc / k / e2 } };
+}
+function raioElipse(f, t) { const co = Math.cos(t), si = Math.sin(t); return 1 / Math.sqrt(f.a * co * co + f.c * co * si + f.b * si * si); }
+function eixosElipse(f) {
+  const m = (f.a + f.b) / 2, d = Math.sqrt(((f.a - f.b) / 2) ** 2 + (f.c / 2) ** 2);
+  const l1 = m - d, l2 = m + d; // l1 <= l2 → eixo maior = 1/sqrt(l1)
+  return { maior: 1 / Math.sqrt(l1), menor: 1 / Math.sqrt(l2), ang: 0.5 * Math.atan2(f.c, f.a - f.b) + Math.PI / 2 };
+}
+function escalarElipse(f, k) { return { a: f.a / (k * k), b: f.b / (k * k), c: f.c / (k * k) }; }
+// distância "normalizada" de (x, y) ao centro: 1 = em cima da borda da elipse
+function rhoElipse(f, cx, cy, x, y) { const u = x - cx, v = y - cy; return Math.sqrt(Math.max(0, f.a * u * u + f.c * u * v + f.b * v * v)); }
+
+// Fração dos raios com borda perto do anel (forma escalada por k).
+function suporteAnel(P, f, k, tolRel) {
+  let hit = 0, val = 0;
+  for (let i = 0; i < P.K; i++) {
+    const t = 2 * Math.PI * i / P.K, R = k * raioElipse(f, t);
+    if (R > P.ate[i]) continue;
+    val++;
+    const tol = Math.max(1.5, tolRel * R);
+    if (P.picos[i].some(p => Math.abs(p - R) <= tol)) hit++;
+  }
+  return val >= P.K * 0.75 ? hit / val : -1;
+}
+
+function quantilAgua(v, t) { const o = v.slice().sort((p, q) => p - q); return o[Math.min(o.length - 1, Math.floor(t * o.length))]; }
+
+function refinarCopo(an, E, cand, rmax) {
+  let { x, y, r } = cand, f = { a: 1 / (r * r), b: 1 / (r * r), c: 0 };
+  const K = 96;
+  for (let it = 0; it < 3; it++) {
+    const P = bordasNosRaios(an, E, x, y, K, Math.min(rmax * 1.25, 1.35 * r));
+    let pts = [];
+    for (let k = 0; k < K; k++) {
+      const t = 2 * Math.PI * k / K, R = raioElipse(f, t), tol = Math.max(2, (it ? 0.06 : 0.1) * R);
+      let melhor = null;
+      for (const p of P.picos[k]) { const d = Math.abs(p - R); if (d <= tol && (!melhor || d < melhor.d)) melhor = { d, p }; }
+      if (melhor) pts.push([x + melhor.p * Math.cos(t), y + melhor.p * Math.sin(t)]);
+    }
+    if (pts.length < K * 0.35) return null;
+    let cf = ajustarCirculo(pts);
+    if (!cf) return null;
+    // tira pontos que fogem muito do círculo e ajusta de novo
+    const res = pts.map(([px, py]) => Math.abs(Math.hypot(px - cf.x, py - cf.y) - cf.r));
+    const ord = res.slice().sort((p, q) => p - q), corte = Math.max(1.5, 2.5 * ord[ord.length >> 1]);
+    pts = pts.filter((_, i) => res[i] <= corte);
+    cf = ajustarCirculo(pts) || cf;
+    x = cf.x; y = cf.y; r = cf.r;
+    f = { a: 1 / (r * r), b: 1 / (r * r), c: 0 };
+    // elipse (foto um pouco inclinada), se o ajuste fizer sentido; senão fica o círculo
+    const el = it ? ajustarElipse(pts) : null;
+    if (el && Math.hypot(el.x - x, el.y - y) < 0.25 * r) {
+      const ex = eixosElipse(el.f);
+      if (ex.maior / ex.menor <= 1.45 && ex.menor > 0.6 * r && ex.maior < 1.6 * r) { x = el.x; y = el.y; f = el.f; }
+    }
+  }
+  return { x, y, f };
+}
+
+function acharCopo(an, E, src, est) {
+  const { w, h, s, L } = an, md = Math.min(w, h);
+  const rmin = Math.max(6, Math.round(AGUA_DET.raioMin * md)), rmax = Math.round(AGUA_DET.raioMax * md);
+  const nada = { ok: false, marcas: {} };
+  if (AGUA_DET.depurar) AGUA_DET.rastro = [];
+
+  // 1) busca grossa: grade de centros, 48 raios cada
+  const passo = Math.max(4, Math.round(0.04 * md)), cands = [];
+  for (let cy = Math.round(0.14 * h); cy <= 0.86 * h; cy += passo) {
+    for (let cx = Math.round(0.14 * w); cx <= 0.86 * w; cx += passo) {
+      const P = bordasNosRaios(an, E, cx, cy, 48, rmax);
+      const sup = curvaSuporte(P, rmin, rmax, p => Math.max(2, 0.08 * p, 0.6 * passo));
+      const vals = [];
+      for (let r = rmin; r <= rmax; r++) if (sup[r] >= 0) vals.push(sup[r]);
+      if (vals.length < 5) continue;
+      // nota: quanto o anel se destaca do "chão" da curva (numa textura, todo raio tem borda)
+      const chao = quantilAgua(vals, 0.3);
+      // cada pico da curva é um anel possível (o fundo do copo, um reflexo, a boca do copo...)
+      for (let r = rmin; r <= rmax; r++) {
+        const v = sup[r];
+        if (v < 0.5 || v - chao < 0.3 || v < sup[r - 1] || v < sup[r + 1]) continue;
+        if (cands.length && cands[cands.length - 1].x === cx && cands[cands.length - 1].y === cy && r - cands[cands.length - 1].r < 0.1 * r) {
+          if (v > cands[cands.length - 1].sup) Object.assign(cands[cands.length - 1], { r, sup: v, nota: v - chao });
+          continue;
+        }
+        cands.push({ x: cx, y: cy, r, sup: v, nota: v - chao });
+      }
+    }
+  }
+  if (!cands.length) return nada;
+  cands.sort((p, q) => q.nota * q.sup - p.nota * p.sup);
+  const escolhidos = [];
+  for (const c of cands) {
+    if (escolhidos.some(e => Math.hypot(e.x - c.x, e.y - c.y) < 0.08 * md && Math.abs(e.r - c.r) < 0.2 * e.r)) continue;
+    escolhidos.push(c);
+    if (escolhidos.length >= 10) break;
+  }
+
+  // 2) ajuste fino de cada candidato e conferência
+  let melhor = null;
+  const validos = [];
+  const rastro = AGUA_DET.depurar ? AGUA_DET.rastro : null, nao = (c, m) => { if (rastro) rastro.push([Math.round(c.x), Math.round(c.y), Math.round(c.r), m]); };
+  for (const c of escolhidos) {
+    const ref = refinarCopo(an, E, c, rmax);
+    if (!ref) { nao(c, 'refino'); continue; }
+    const { x, y } = ref;
+    let f = ref.f;
+    const ex0 = eixosElipse(f);
+    // anéis em volta do mesmo centro: o mais de fora é a boca do copo
+    const P = bordasNosRaios(an, E, x, y, 96, Math.round(Math.min(rmax * 1.3, 1.75 * ex0.maior)));
+    const S = [], vals = [];
+    for (let k = 0.3; k <= 1.72; k += 0.01) { const v = suporteAnel(P, f, k, 0.035); S.push([k, v]); if (v >= 0) vals.push(v); }
+    if (vals.length < 10) { nao(c, 'poucos anéis'); continue; }
+    const p0 = quantilAgua(vals, 0.3);
+    let anel = null;
+    for (let i = 1; i < S.length - 1; i++) {
+      const [k, v] = S[i];
+      if (v < AGUA_DET.suporte || v < S[i - 1][1] || v < S[i + 1][1]) continue;
+      if (k * ex0.maior > rmax || k * ex0.menor < rmin) continue;
+      if (!anel || k > anel.k) anel = { k, v };
+    }
+    if (!anel) { nao(c, 'sem anel'); continue; }
+    const nota = anel.v - p0;
+    if (nota < AGUA_DET.nota) { nao(c, 'nota ' + nota.toFixed(2)); continue; }
+    f = escalarElipse(f, anel.k);
+    const ex = eixosElipse(f), raio = Math.sqrt(ex.maior * ex.menor);
+    // quão redonda é a borda: desvio típico das bordas achadas em relação à elipse
+    const desvios = [];
+    for (let i = 0; i < P.K; i++) {
+      const R = raioElipse(f, 2 * Math.PI * i / P.K);
+      if (R > P.ate[i]) continue;
+      let dm = Infinity;
+      for (const p of P.picos[i]) { const d = Math.abs(p - R) / R; if (d < dm) dm = d; }
+      if (dm <= 0.12) desvios.push(dm);
+    }
+    const desvio = desvios.length > 8 ? quantilAgua(desvios, 0.5) : 1;
+    if (desvio > AGUA_DET.desvio) { nao(c, 'desvio ' + desvio.toFixed(3)); continue; }
+    // o copo inteiro na foto, com folga
+    if (x - ex.maior < 2 || y - ex.maior < 2 || x + ex.maior > w - 3 || y + ex.maior > h - 3) {
+      // elipse girada pode caber mesmo com o eixo maior encostando; confere pelos pontos da borda
+      let fora = 0;
+      for (let i = 0; i < 64; i++) { const t = 2 * Math.PI * i / 64, R = raioElipse(f, t), px = x + R * Math.cos(t), py = y + R * Math.sin(t); if (px < 1 || py < 1 || px > w - 2 || py > h - 2) fora++; }
+      if (fora > 2) { nao(c, 'fora da foto'); continue; }
+    }
+    if (Math.hypot(x - w / 2, y - h / 2) > 0.42 * md) { nao(c, 'longe do centro'); continue; }
+    // água (meio do copo) e fundo em volta
+    const dentro = [], dentroIdx = [], faixa = [];
+    const [f0, f1] = AGUA_DET.faixa, R1 = f1 * ex.maior;
+    let faixaTotal = 0;
+    const passoA = Math.max(1, Math.round(raio / 40));
+    for (let yy = Math.floor(y - R1); yy <= Math.ceil(y + R1); yy += passoA) {
+      for (let xx = Math.floor(x - R1); xx <= Math.ceil(x + R1); xx += passoA) {
+        const rho = rhoElipse(f, x, y, xx, yy);
+        const naFaixa = rho >= f0 && rho <= f1;
+        if (naFaixa) faixaTotal++;
+        if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+        const i = yy * w + xx;
+        if (rho <= AGUA_DET.amostra) { dentro.push(L[i]); dentroIdx.push(i); }
+        else if (naFaixa) faixa.push(i);
+      }
+    }
+    if (dentro.length < 12 || faixa.length < 0.45 * faixaTotal) { nao(c, 'sem fundo'); continue; }
+    dentro.sort((p, q) => p - q);
+    const q = t => dentro[Math.min(dentro.length - 1, Math.floor(t * dentro.length))];
+    const Ldentro = q(0.5), espalha = q(0.8) - q(0.2);
+    faixa.sort((p, q2) => L[q2] - L[p]);
+    const claros = faixa.slice(0, Math.max(1, Math.round(faixa.length * 0.4)));
+    const Lfundo = L[claros[claros.length >> 1]];
+    if (espalha > 22) { nao(c, 'espalha ' + espalha.toFixed(1)); continue; }               // não é uma amostra uniforme
+    if (Ldentro > Lfundo + 6) { nao(c, 'mais claro'); continue; }       // mais claro que o fundo: não é água num copo
+    // o fundo em volta do copo é uma superfície só (papel, mesa), tirando a sombra (a parte mais escura)
+    const sup65 = faixa.slice(0, Math.max(3, Math.round(faixa.length * 0.65)));
+    const mediana = arr => { const v = arr.slice().sort((p, q) => p - q); return v[v.length >> 1]; };
+    const mL = mediana(sup65.map(i => L[i])), mA = mediana(sup65.map(i => an.A[i])), mB = mediana(sup65.map(i => an.B[i]));
+    const dif = sup65.map(i => Math.hypot(L[i] - mL, an.A[i] - mA, an.B[i] - mB)).sort((p, q) => p - q);
+    const variaFundo = dif[Math.floor(dif.length * 0.8)];
+    if (variaFundo > AGUA_DET.fundoVaria) { nao(c, 'fundo varia ' + variaFundo.toFixed(1)); continue; }
+    const notaFinal = anel.v * (0.6 + 0.4 * nota) - 0.3 * Math.hypot(x - w / 2, y - h / 2) / md;
+    // Em volta de um copo de verdade fica o papel (claro e sem cor) ou uma mesa de outra cor. Se o
+    // "fundo" tem cor e é igual ao que está dentro do anel, é um desenho na própria água (um anel de
+    // onda no rio, por exemplo): não é um copo. (Cores já corrigidas pelo branco da foto.)
+    const medDe = (arr, idx) => mediana(idx.map(i => arr[i]));
+    const fundoAB = [medDe(an.A, claros), medDe(an.B, claros)], dentroAB = [medDe(an.A, dentroIdx), medDe(an.B, dentroIdx)];
+    if (Math.hypot(fundoAB[0], fundoAB[1]) > 14 && Math.hypot(Ldentro - Lfundo, dentroAB[0] - fundoAB[0], dentroAB[1] - fundoAB[1]) < 10) { nao(c, 'fundo igual à água'); continue; }
+    validos.push({ x, y, f, ex, raio, claros, notaFinal, sup: anel.v, nota, Ldentro, Lfundo, variaFundo, desvio });
+  }
+  // um anel dentro de outro (um reflexo, o fundo do copo) não é a boca do copo: fica o de fora
+  for (const a of validos) {
+    if (validos.some(b => b !== a && b.raio > 1.15 * a.raio && rhoElipse(b.f, b.x, b.y, a.x, a.y) < 0.85)) continue;
+    if (!melhor || a.notaFinal > melhor.notaFinal) melhor = a;
+  }
+  if (!melhor) return nada;
+
+  // 3) branco de referência: a parte clara do fundo em volta do copo (na foto inteira)
+  const { x, y, ex, raio, claros } = melhor, md0 = Math.min(src.width, src.height);
+  let ref = null;
+  if (est && est.data) {
+    const acc = [[], [], []], d = est.data, W0 = est.w, H0 = est.h;
+    for (const i of claros) {
+      const px = Math.min(W0 - 1, Math.round(((i % w) + 0.5) / s - 0.5)), py = Math.min(H0 - 1, Math.round((Math.floor(i / w) + 0.5) / s - 0.5));
+      const k = (py * W0 + px) * 4;
+      acc[0].push(LIN[d[k]]); acc[1].push(LIN[d[k + 1]]); acc[2].push(LIN[d[k + 2]]);
+    }
+    const media = v => { v.sort((p, q) => p - q); const a = Math.floor(v.length * 0.25), b = Math.max(a + 1, Math.ceil(v.length * 0.75)); let t = 0; for (let j = a; j < b; j++) t += v[j]; return t / (b - a); };
+    ref = acc.map(media);
+  }
+  const Y = ref ? 0.2126 * ref[0] + 0.7152 * ref[1] + 0.0722 * ref[2] : 0;
+  const ganho = ref ? Math.max(...ref) / Math.max(1e-4, Math.min(...ref)) : 99;
+  const refOk = ref && Y >= 0.06 && ganho <= 4;
+  return {
+    ok: true,
+    tipo: "copo",
+    marcas: { agua: { x: x / s, y: y / s } },
+    raio: 100 * AGUA_DET.amostra * raio / s / md0,
+    copo: { x: x / s, y: y / s, rx: ex.maior / s, ry: ex.menor / s, ang: ex.ang },
+    ref: refOk ? ref : null,
+    det: { sup: +melhor.sup.toFixed(2), nota: +melhor.nota.toFixed(2), Ldentro: +melhor.Ldentro.toFixed(1), Lfundo: +melhor.Lfundo.toFixed(1), varia: +melhor.variaFundo.toFixed(1), desvio: +melhor.desvio.toFixed(3) },
+  };
+}
+
+
+/* ---------- Água direta sem o copo visto de cima: rio, lago, ou copo/garrafa de lado ----------
+   A foto reduzida é dividida em blocos. Ficam os blocos com cor de água (do barro e do âmbar à
+   água turva; quase branco não conta, porque numa foto direta isso é parede, papel, tela ou céu),
+   juntados em regiões de cor parecida, sem pular bordas fortes. Uma região é água quando é:
+   - RIO, LAGO: grande, com as partes mais claras mais acinzentadas que o resto (é o céu refletido
+     nas ondinhas; numa parede, madeira, papelão, areia ou pele, o claro tem a mesma cor ou mais)
+     e com ondinhas deitadas (a água vista de lado forma riscos na horizontal);
+   - COPO OU GARRAFA DE LADO: uma mancha lisa e cheia, perto do meio da foto, bem diferente do
+     fundo em volta e sem encostar em três bordas da foto (aí ela seria o fundo, não um copo), com
+     sinal de vidro: as paredes do copo continuam acima da linha da água, ou há brilhos na água.
+     (Uma caixa de papelão ou uma porta, lisas e foscas, não têm nenhum dos dois.)
+   A cor lida é a da maior parte da água, sem os reflexos claros. */
+const AGUA_SUP = {
+  blocos: 20,       // o lado menor da foto vira 20 blocos
+  corMax: 16,       // distância máxima entre a cor do bloco e a cartela da água
+  claraMax: 3.3,    // posição máxima na cartela (0 = nível 1 … 4 = nível 5): sem os quase brancos
+  vizinho: 10,      // diferença máxima de cor entre blocos vizinhos da mesma região
+  areaMin: 0.1,     // rio: a água ocupa pelo menos 10% da foto
+  reflexo: 0.88,    // croma das partes mais claras ÷ croma do meio (o céu refletido é mais cinza)
+  correl: -0.2,     // claridade x croma: na água, quanto mais claro, menos cor
+  ondas: 0.45,      // coerência mínima dos riscos deitados das ondinhas (tábuas de deck ficam abaixo)
+  espalhaL: 24,     // claridade: diferença entre os 10% mais escuros e os 10% mais claros
+  bordas: 0.25,     // fração máxima de bordas fortes dentro da região
+  // copo ou garrafa de lado
+  ladoArea: [0.05, 0.85], // fração da foto
+  ladoCheio: 0.7,   // a mancha ocupa pelo menos isso do retângulo em volta dela (sem buracos)
+  ladoContraste: 15,// diferença de cor mínima entre a água e o fundo em volta
+  ladoLisa: 4.5,    // desvio típico da claridade dentro de cada bloco (líquido é liso; madeira, pelo, tecido não)
+  ladoReflexo: 1.02,// no miolo, as partes mais claras não têm mais cor que o resto (como num objeto fosco sombreado)
+  ladoVidro: 0.6,   // sinal do copo: as paredes de vidro continuam acima da linha da água...
+  ladoBrilho: 0.95, // ...ou há brilhos (reflexos brancos) no meio da água
+};
+
+// É cor de água? (barro, âmbar, turva; não quase branca; tom de marrom/âmbar, não de pele)
+function corDeAgua(lab) {
+  const C = Math.hypot(lab[1], lab[2]), h = Math.atan2(lab[2], lab[1]) * 180 / Math.PI;
+  if (C >= 12 && !(h >= 55 || (h >= 50 && C >= 38))) return false;
+  const e = estimar(CARTELA_AGUA[0], suavizarCroma(lab));
+  return e.d <= AGUA_SUP.corMax && e.frac <= AGUA_SUP.claraMax;
+}
+
+// Acima da linha da água, as paredes do copo continuam: duas linhas verticais retas, na altura das
+// laterais da água. Para cada lado, procura a coluna (perto da lateral) com borda vertical na maior parte
+// das linhas logo acima da água; devolve a fração no lado mais fraco (0 a 1).
+function paredesDoCopo(Lr, w, X0, X1, Y0) {
+  const alto = Math.round(0.35 * (X1 - X0)), ya = Math.max(1, Y0 - alto), yb = Y0 - 3;
+  if (yb - ya < 5) return 0;
+  const folga = Math.max(3, Math.round(0.08 * (X1 - X0)));
+  const lado = xc => {
+    let melhor = 0;
+    for (let x = Math.max(1, xc - folga); x <= Math.min(w - 2, xc + folga); x++) {
+      let n = 0;
+      for (let y = ya; y <= yb; y++) if (Math.abs(Lr[y * w + x + 1] - Lr[y * w + x - 1]) >= 5) n++;
+      melhor = Math.max(melhor, n / (yb - ya + 1));
+    }
+    return melhor;
+  };
+  return Math.min(lado(X0), lado(X1));
+}
+
+function acharSemCopo(an, M, src, est) {
+  const { w, h, s, px } = an, md = Math.min(w, h), nada = { ok: false, marcas: {} };
+  if (!px) return nada;
+  const b = Math.max(6, Math.round(md / AGUA_SUP.blocos)), gw = Math.floor(w / b), gh = Math.floor(h / b), nb = gw * gh;
+  if (nb < 16) return nada;
+  // Lab "cru" (sem correção de branco): a cor da água como a câmera viu
+  const n = w * h, Lr = new Float32Array(n), Ar = new Float32Array(n), Br = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const k = i * 4, lab = linToLab([LIN[px[k]], LIN[px[k + 1]], LIN[px[k + 2]]]);
+    Lr[i] = lab[0]; Ar[i] = lab[1]; Br[i] = lab[2];
+  }
+  // cor média de cada bloco, quanto a claridade varia dentro dele e se é cor de água
+  const bL = new Float32Array(nb), bA = new Float32Array(nb), bB = new Float32Array(nb), bS = new Float32Array(nb), cand = new Uint8Array(nb);
+  for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
+    let sl = 0, sll = 0, sa = 0, sb = 0;
+    for (let y = gy * b; y < gy * b + b; y++) for (let x = gx * b; x < gx * b + b; x++) { const i = y * w + x; sl += Lr[i]; sll += Lr[i] * Lr[i]; sa += Ar[i]; sb += Br[i]; }
+    const j = gy * gw + gx, q = b * b;
+    bL[j] = sl / q; bA[j] = sa / q; bB[j] = sb / q; bS[j] = Math.sqrt(Math.max(0, sll / q - bL[j] * bL[j]));
+    cand[j] = corDeAgua([bL[j], bA[j], bB[j]]) ? 1 : 0;
+  }
+  // regiões: blocos vizinhos com cor parecida
+  const rot = new Int32Array(nb).fill(-1), regs = [], fila = new Int32Array(nb);
+  for (let j0 = 0; j0 < nb; j0++) {
+    if (!cand[j0] || rot[j0] >= 0) continue;
+    let ini = 0, fim = 0;
+    const blocos = [];
+    fila[fim++] = j0; rot[j0] = regs.length;
+    while (ini < fim) {
+      const j = fila[ini++], gx = j % gw, gy = (j - gx) / gw;
+      blocos.push(j);
+      for (const [nx, ny] of [[gx + 1, gy], [gx - 1, gy], [gx, gy + 1], [gx, gy - 1]]) {
+        if (nx < 0 || ny < 0 || nx >= gw || ny >= gh) continue;
+        const k = ny * gw + nx;
+        if (!cand[k] || rot[k] >= 0) continue;
+        if (Math.hypot(bL[k] - bL[j], bA[k] - bA[j], bB[k] - bB[j]) > AGUA_SUP.vizinho) continue;
+        rot[k] = regs.length; fila[fim++] = k;
+      }
+    }
+    regs.push(blocos);
+  }
+  const mediana = v => { const o = v.slice().sort((p, q) => p - q); return o[o.length >> 1]; };
+  let melhor = null;
+  const rastro = AGUA_DET.depurar ? (AGUA_DET.rastroSup = []) : null;
+  for (const blocos of regs) {
+    const area = blocos.length / nb;
+    if (area < Math.min(AGUA_SUP.areaMin, AGUA_SUP.ladoArea[0])) continue;
+    const passo = blocos.length * b * b > 40000 ? 2 : 1, Ls = [], Cs = [], idx = [];
+    let jxx = 0, jyy = 0, jxy = 0, fortes = 0;
+    let x0 = gw, x1 = 0, y0 = gh, y1 = 0, cx = 0, cy = 0;
+    const dentro = new Uint8Array(nb);
+    for (const j of blocos) {
+      const gx = j % gw, gy = (j - gx) / gw;
+      dentro[j] = 1; cx += gx; cy += gy;
+      if (gx < x0) x0 = gx; if (gx > x1) x1 = gx; if (gy < y0) y0 = gy; if (gy > y1) y1 = gy;
+      for (let y = gy * b; y < gy * b + b; y += passo) for (let x = gx * b; x < gx * b + b; x += passo) {
+        const i = y * w + x;
+        Ls.push(Lr[i]); Cs.push(Math.hypot(Ar[i], Br[i])); idx.push(i);
+        if (x > 0 && y > 0 && x < w - 1 && y < h - 1) {
+          const gxv = (Lr[i + 1] - Lr[i - 1]) / 2, gyv = (Lr[i + w] - Lr[i - w]) / 2;
+          jxx += gxv * gxv; jyy += gyv * gyv; jxy += gxv * gyv;
+        }
+        if (M.E[i] > 6) fortes++;
+      }
+    }
+    cx /= blocos.length; cy /= blocos.length;
+    const N = Ls.length, ordem = Array.from({ length: N }, (_, k) => k).sort((p, q) => Ls[p] - Ls[q]);
+    const faixaL = Ls[ordem[Math.floor(N * 0.9)]] - Ls[ordem[Math.floor(N * 0.1)]];
+    const mediaC = (a, z) => { const k0 = Math.floor(a * N), k1 = Math.max(k0 + 1, Math.floor(z * N)); let t = 0; for (let k = k0; k < k1; k++) t += Cs[ordem[k]]; return t / (k1 - k0); };
+    const reflexo = mediaC(0.9, 1) / Math.max(1e-6, mediaC(0.4, 0.6));
+    let mL = 0, mC = 0;
+    for (let k = 0; k < N; k++) { mL += Ls[k]; mC += Cs[k]; }
+    mL /= N; mC /= N;
+    let sLC = 0, sLL = 0, sCC = 0;
+    for (let k = 0; k < N; k++) { const dl = Ls[k] - mL, dc = Cs[k] - mC; sLC += dl * dc; sLL += dl * dl; sCC += dc * dc; }
+    const correl = sLC / Math.sqrt(sLL * sCC + 1e-9);
+    const coer = Math.hypot(jxx - jyy, 2 * jxy) / (jxx + jyy + 1e-9), ang = 0.5 * Math.atan2(2 * jxy, jxx - jyy);
+    const deitadas = coer >= AGUA_SUP.ondas && Math.abs(Math.cos(ang)) <= Math.cos(55 * Math.PI / 180);
+    const fracFortes = fortes / N;
+    // a mancha: quão cheia ela é, quão lisa, e quão diferente do fundo em volta (2 blocos)
+    const cheio = blocos.length / ((x1 - x0 + 1) * (y1 - y0 + 1));
+    const lisa = mediana(blocos.map(j => bS[j]));
+    const anel = [];
+    for (let gy = Math.max(0, y0 - 2); gy <= Math.min(gh - 1, y1 + 2); gy++) for (let gx = Math.max(0, x0 - 2); gx <= Math.min(gw - 1, x1 + 2); gx++) {
+      const j = gy * gw + gx;
+      if (dentro[j]) continue;
+      let perto = false;
+      for (let dy = -2; dy <= 2 && !perto; dy++) for (let dx = -2; dx <= 2; dx++) {
+        const nx = gx + dx, ny = gy + dy;
+        if (nx >= 0 && ny >= 0 && nx < gw && ny < gh && dentro[ny * gw + nx]) { perto = true; break; }
+      }
+      if (perto) anel.push(j);
+    }
+    const cor0 = [mediana(blocos.map(j => bL[j])), mediana(blocos.map(j => bA[j])), mediana(blocos.map(j => bB[j]))];
+    // brilho no miolo da mancha (sem os blocos da borda, que misturam com o fundo)
+    const miolo = blocos.filter(j => { const gx = j % gw, gy = (j - gx) / gw; return gx > 0 && gy > 0 && gx < gw - 1 && gy < gh - 1 && dentro[j - 1] && dentro[j + 1] && dentro[j - gw] && dentro[j + gw]; });
+    let reflexoMiolo = reflexo;
+    if (miolo.length >= 6) {
+      const Lm = [], Cm = [];
+      for (const j of miolo) {
+        const gx = j % gw, gy = (j - gx) / gw;
+        for (let y = gy * b; y < gy * b + b; y += passo) for (let x = gx * b; x < gx * b + b; x += passo) { const i = y * w + x; Lm.push(Lr[i]); Cm.push(Math.hypot(Ar[i], Br[i])); }
+      }
+      const om = Lm.map((_, k) => k).sort((p, q) => Lm[p] - Lm[q]), Nm = om.length;
+      const mC2 = (a, z) => { const k0 = Math.floor(a * Nm), k1 = Math.max(k0 + 1, Math.floor(z * Nm)); let t = 0; for (let k = k0; k < k1; k++) t += Cm[om[k]]; return t / (k1 - k0); };
+      reflexoMiolo = mC2(0.9, 1) / Math.max(1e-6, mC2(0.4, 0.6));
+    }
+    const bordasFoto = (x0 === 0) + (y0 === 0) + (x1 === gw - 1) + (y1 === gh - 1);
+    const vidro = paredesDoCopo(Lr, w, x0 * b, (x1 + 1) * b - 1, y0 * b);
+    const contraste = anel.length >= 8 ? Math.hypot(cor0[0] - mediana(anel.map(j => bL[j])), cor0[1] - mediana(anel.map(j => bA[j])), cor0[2] - mediana(anel.map(j => bB[j]))) : 0;
+    const info = { area: +area.toFixed(2), reflexo: +reflexo.toFixed(2), correl: +correl.toFixed(2), coer: +coer.toFixed(2), deitadas,
+      faixaL: +faixaL.toFixed(1), fortes: +fracFortes.toFixed(3), cheio: +cheio.toFixed(2), lisa: +lisa.toFixed(1), contraste: +contraste.toFixed(1),
+      reflexoMiolo: +reflexoMiolo.toFixed(2), bordasFoto, vidro: +vidro.toFixed(2),
+      centro: [+(cx / gw).toFixed(2), +(cy / gh).toFixed(2)] };
+    const rio = area >= AGUA_SUP.areaMin && reflexo <= AGUA_SUP.reflexo && correl <= AGUA_SUP.correl && deitadas &&
+      faixaL <= AGUA_SUP.espalhaL && fracFortes <= AGUA_SUP.bordas;
+    const lado = !rio && area >= AGUA_SUP.ladoArea[0] && area <= AGUA_SUP.ladoArea[1] && cheio >= AGUA_SUP.ladoCheio &&
+      contraste >= AGUA_SUP.ladoContraste && lisa <= AGUA_SUP.ladoLisa && reflexoMiolo <= AGUA_SUP.ladoReflexo && bordasFoto < 3 &&
+      (vidro >= AGUA_SUP.ladoVidro || reflexoMiolo <= AGUA_SUP.ladoBrilho) &&
+      (cx + 0.5) / gw >= 0.15 && (cx + 0.5) / gw <= 0.85 && (cy + 0.5) / gh >= 0.12 && (cy + 0.5) / gh <= 0.88;
+    const tipo = rio ? "superficie" : lado ? "lado" : null;
+    if (rastro) rastro.push(Object.assign({ tipo }, info));
+    if (!tipo) continue;
+    const nota = area * (rio ? 1.5 : 1);
+    if (!melhor || nota > melhor.nota) melhor = { blocos, idx, ordem, nota, info, tipo, anel };
+  }
+  if (!melhor) return acharCopoLimpo({ w, h, s, px, Lr, Ar, Br, bL, bA, bB, bS, gw, gh, b, nb, src, rastro });
+  // cor da água: a maior parte dos pixels, tirando a parte mais clara (o céu refletido, os brilhos do vidro)
+  const { blocos, idx, ordem } = melhor, N = ordem.length, amostra = [];
+  const passoA = Math.max(1, Math.floor(N * 0.65 / 5000));
+  for (let k = 0; k < Math.floor(N * 0.65); k += passoA) {
+    const i = idx[ordem[k]], q = i * 4, lin = [LIN[px[q]], LIN[px[q + 1]], LIN[px[q + 2]]];
+    amostra.push({ lin, lab: [Lr[i], Ar[i], Br[i]] });
+  }
+  const cor = modaCor(amostra), labCor = linToLab(cor);
+  // marca no bloco com a cor mais parecida, perto do meio da região
+  let cx = 0, cy = 0;
+  for (const j of blocos) { cx += j % gw; cy += Math.floor(j / gw); }
+  cx /= blocos.length; cy /= blocos.length;
+  let alvo = blocos[0], melhorNota = Infinity;
+  for (const j of blocos) {
+    const gx = j % gw, gy = (j - gx) / gw, nota = Math.hypot(bL[j] - labCor[0], bA[j] - labCor[1], bB[j] - labCor[2]) + 0.8 * Math.hypot(gx - cx, gy - cy);
+    if (nota < melhorNota) { melhorNota = nota; alvo = j; }
+  }
+  const mask = new Uint8Array(nb);
+  for (const j of blocos) mask[j] = 1;
+  const md0 = Math.min(src.width, src.height), ax = alvo % gw, ay = (alvo - ax) / gw;
+  // copo de lado na frente de um fundo claro e sem cor (parede branca, papel): esse fundo vira o branco de referência
+  let ref = null;
+  if (melhor.tipo === "lado" && melhor.anel && melhor.anel.length >= 8) {
+    const fundoLab = [mediana(melhor.anel.map(j => bL[j])), mediana(melhor.anel.map(j => bA[j])), mediana(melhor.anel.map(j => bB[j]))];
+    if (fundoLab[0] >= 75 && Math.hypot(fundoLab[1], fundoLab[2]) <= 10) ref = mediaLinBlocos(melhor.anel, px, w, b);
+  }
+  return {
+    ok: true,
+    tipo: melhor.tipo,
+    ref,
+    marcas: { agua: { x: (ax + 0.5) * b / s, y: (ay + 0.5) * b / s } },
+    raio: 100 * 0.9 * b / s / md0,
+    cor,
+    regiao: { b: b / s, gw, gh, mask },
+    det: melhor.info,
+  };
+}
+
+// Cor média (luz linear) dos pixels de uma lista de blocos.
+function mediaLinBlocos(blocos, px, w, b) {
+  const gw = Math.floor(w / b), t = [0, 0, 0];
+  let n = 0;
+  for (const j of blocos) {
+    const gx = j % gw, gy = (j - gx) / gw;
+    for (let y = gy * b; y < gy * b + b; y += 2) for (let x = gx * b; x < gx * b + b; x += 2) {
+      const k = (y * w + x) * 4;
+      t[0] += LIN[px[k]]; t[1] += LIN[px[k + 1]]; t[2] += LIN[px[k + 2]]; n++;
+    }
+  }
+  return t.map(v => v / Math.max(1, n));
+}
+
+/* Copo transparente de lado com água limpa: a água quase não tem cor, então ela é achada pelo copo.
+   O fundo em volta é claro e liso (parede ou papel); o copo é a mancha no meio que destoa dele, com
+   as paredes de vidro (duas linhas verticais nas laterais, de cima a baixo) e o efeito de lente da água
+   (o meio mais claro que perto das paredes). A cor é lida no meio do copo, em relação ao fundo. */
+function acharCopoLimpo(g) {
+  const { w, h, s, px, Lr, bL, bA, bB, bS, gw, gh, b, nb, src, rastro } = g, nada = { ok: false, marcas: {} };
+  const mediana = v => { const o = v.slice().sort((p, q) => p - q); return o[o.length >> 1]; };
+  // fundo: os blocos da borda da foto
+  const borda = [];
+  for (let gx = 0; gx < gw; gx++) { borda.push(gx); borda.push((gh - 1) * gw + gx); }
+  for (let gy = 1; gy < gh - 1; gy++) { borda.push(gy * gw); borda.push(gy * gw + gw - 1); }
+  const fundo = [mediana(borda.map(j => bL[j])), mediana(borda.map(j => bA[j])), mediana(borda.map(j => bB[j]))];
+  const igual = j => Math.hypot(bL[j] - fundo[0], bA[j] - fundo[1], bB[j] - fundo[2]) <= 3.5 && bS[j] < 3;
+  const lisoBorda = borda.filter(igual).length / borda.length;
+  const info = { fundoL: +fundo[0].toFixed(1), fundoC: +Math.hypot(fundo[1], fundo[2]).toFixed(1), lisoBorda: +lisoBorda.toFixed(2) };
+  if (fundo[0] < 70 || Math.hypot(fundo[1], fundo[2]) > 12 || lisoBorda < 0.75) { if (rastro) rastro.push(Object.assign({ limpo: "fundo" }, info)); return nada; }
+  // o objeto: blocos que destoam do fundo, ligados
+  const obj = new Uint8Array(nb), rot = new Int32Array(nb).fill(-1), fila = new Int32Array(nb);
+  for (let j = 0; j < nb; j++) obj[j] = igual(j) ? 0 : 1;
+  const partes = [];
+  for (let j0 = 0; j0 < nb; j0++) {
+    if (!obj[j0] || rot[j0] >= 0) continue;
+    let ini = 0, fim = 0;
+    const blocos = [];
+    fila[fim++] = j0; rot[j0] = j0;
+    let px0 = gw, px1 = 0, py0 = gh, py1 = 0;
+    while (ini < fim) {
+      const j = fila[ini++], gx = j % gw, gy = (j - gx) / gw;
+      blocos.push(j);
+      if (gx < px0) px0 = gx; if (gx > px1) px1 = gx; if (gy < py0) py0 = gy; if (gy > py1) py1 = gy;
+      for (const [nx, ny] of [[gx + 1, gy], [gx - 1, gy], [gx, gy + 1], [gx, gy - 1]]) {
+        if (nx < 0 || ny < 0 || nx >= gw || ny >= gh) continue;
+        const k = ny * gw + nx;
+        if (obj[k] && rot[k] < 0) { rot[k] = j0; fila[fim++] = k; }
+      }
+    }
+    partes.push({ blocos, x0: px0, x1: px1, y0: py0, y1: py1 });
+  }
+  if (!partes.length) return nada;
+  partes.sort((p, q) => q.blocos.length - p.blocos.length);
+  // a maior parte e as que ficam do lado dela, na mesma altura (a outra parede do copo)
+  const base = partes[0];
+  let melhor = base.blocos.slice(), x0 = base.x0, x1 = base.x1, y0 = base.y0, y1 = base.y1;
+  for (const q of partes.slice(1)) {
+    const sobre = Math.min(y1, q.y1) - Math.max(y0, q.y0) + 1, alt = Math.min(y1 - y0, q.y1 - q.y0) + 1;
+    const vao = Math.max(q.x0 - x1, x0 - q.x1);
+    if (sobre >= 0.6 * alt && vao <= 0.8 * (y1 - y0 + 1)) {
+      melhor = melhor.concat(q.blocos);
+      x0 = Math.min(x0, q.x0); x1 = Math.max(x1, q.x1); y0 = Math.min(y0, q.y0); y1 = Math.max(y1, q.y1);
+    }
+  }
+  // o miolo entre as paredes também é do copo
+  for (let gy = y0; gy <= y1; gy++) for (let gx = x0; gx <= x1; gx++) { const j = gy * gw + gx; if (!melhor.includes(j)) melhor.push(j); }
+  const area = melhor.length / nb, cxr = (x0 + x1 + 1) / 2 / gw, cyr = (y0 + y1 + 1) / 2 / gh;
+  const X0 = x0 * b, X1 = (x1 + 1) * b - 1, Y0 = y0 * b, Y1 = (y1 + 1) * b - 1, Wo = X1 - X0, Ho = Y1 - Y0;
+  info.area = +area.toFixed(2); info.centro = [+cxr.toFixed(2), +cyr.toFixed(2)]; info.proporcao = +(Ho / Wo).toFixed(2);
+  if (area < 0.03 || area > 0.7 || cxr < 0.2 || cxr > 0.8 || cyr < 0.2 || cyr > 0.8 || Ho / Wo < 0.7 || Ho / Wo > 3.5) { if (rastro) rastro.push(Object.assign({ limpo: "objeto" }, info)); return nada; }
+  // paredes de vidro: nas duas laterais, uma linha vertical na maior parte da altura do copo
+  const ya = Math.round(Y0 + 0.15 * Ho), yb = Math.round(Y1 - 0.15 * Ho), folga = Math.max(3, Math.round(0.1 * Wo));
+  const parede = xc => {
+    let n = 0;
+    for (let y = ya; y <= yb; y++) {
+      for (let x = Math.max(1, xc - folga); x <= Math.min(w - 2, xc + folga); x++) {
+        if (Math.abs(Lr[y * w + x + 1] - Lr[y * w + x - 1]) >= 4) { n++; break; }
+      }
+    }
+    return n / Math.max(1, yb - ya + 1);
+  };
+  const paredes = Math.min(parede(X0), parede(X1));
+  // efeito de lente: no meio da altura, o centro do copo é mais claro que perto das paredes
+  const faixaMedia = (xa, xb) => { let t = 0, n = 0; for (let y = Math.round(Y0 + 0.35 * Ho); y <= Math.round(Y0 + 0.75 * Ho); y++) for (let x = Math.round(xa); x <= Math.round(xb); x++) { t += Lr[y * w + x]; n++; } return t / Math.max(1, n); };
+  const centroL = faixaMedia(X0 + 0.38 * Wo, X0 + 0.62 * Wo), ladosL = (faixaMedia(X0 + 0.08 * Wo, X0 + 0.22 * Wo) + faixaMedia(X1 - 0.22 * Wo, X1 - 0.08 * Wo)) / 2;
+  const lente = centroL - ladosL;
+  info.paredes = +paredes.toFixed(2); info.lente = +lente.toFixed(1); info.centroL = +centroL.toFixed(1);
+  const ok = paredes >= 0.5 && lente >= 4 && centroL >= 55;
+  if (rastro) rastro.push(Object.assign({ limpo: ok ? "ok" : "copo" }, info));
+  if (!ok) return nada;
+  // cor da água: meio do copo (sem as paredes, a boca e o fundo grosso), maior parte dos pixels
+  const amostra = [];
+  const xa = Math.round(X0 + 0.28 * Wo), xb = Math.round(X1 - 0.28 * Wo), ya2 = Math.round(Y0 + 0.4 * Ho), yb2 = Math.round(Y0 + 0.78 * Ho);
+  const passo = Math.max(1, Math.round(Math.sqrt((xb - xa + 1) * (yb2 - ya2 + 1) / 4000)));
+  for (let y = ya2; y <= yb2; y += passo) for (let x = xa; x <= xb; x += passo) {
+    const k = (y * w + x) * 4, lin = [LIN[px[k]], LIN[px[k + 1]], LIN[px[k + 2]]];
+    amostra.push({ lin, lab: linToLab(lin) });
+  }
+  const cor = modaCor(amostra);
+  const ref = mediaLinBlocos(borda.filter(igual), px, w, b);
+  const mask = new Uint8Array(nb);
+  for (const j of melhor) mask[j] = 1;
+  const md0 = Math.min(src.width, src.height);
+  return {
+    ok: true,
+    tipo: "lado",
+    marcas: { agua: { x: (xa + xb) / 2 / s, y: (ya2 + yb2) / 2 / s } },
+    raio: 100 * 0.18 * Wo / s / md0,
+    cor,
+    ref,
+    regiao: { b: b / s, gw, gh, mask },
+    det: info,
+  };
+}
+
+// Água direta: primeiro procura um copo visto de cima (lido em relação ao papel em volta); se não
+// houver, procura a água do rio ou um copo/garrafa de lado, lidos direto.
+function detectarAgua(src, est) {
+  const an = analisar(src, AGUA_DET.lado), E = bordasCor(an);
+  const copo = acharCopo(an, E, src, est);
+  return copo.ok ? copo : acharSemCopo(an, E, src, est);
 }
 
 function detectar(est) {
-  try { return est.id === "fita" ? detectarFita(est.src) : detectarAgua(est.src); }
+  try { return est.id === "fita" ? detectarFita(est.src) : detectarAgua(est.src, est); }
   catch (e) { return { ok: false, marcas: {} }; }
 }
 
 function aplicarAuto(est, r) {
   est.marcas = Object.assign({}, r.marcas);
   est.eixo = r.eixo || null;
-  if (r.raio) est.raio = Math.min(5, Math.max(0.25, Math.round(r.raio * 4) / 4));
+  est.copo = r.copo || null;       // água: contorno do copo achado
+  est.ref = r.ref || null;         // água: cor do fundo em volta do copo (branco de referência)
+  est.corAgua = r.cor || null;     // água sem copo: cor da maior parte da água (já lida)
+  est.regiao = r.regiao || null;   // água sem copo: blocos da foto que são água
+  est.tipoAgua = r.ok ? r.tipo || null : null;
+  if (r.raio) est.raio = Math.min(est.id === "agua" ? 14 : 5, Math.max(0.25, Math.round(r.raio * 4) / 4));
   est.auto = r.ok ? "ok" : Object.keys(r.marcas).length ? "parcial" : "falhou";
   est.ativo = MODOS[est.id].pontos.map(p => p.id).find(id => !est.marcas[id]) || null;
 }
@@ -1813,10 +2612,10 @@ function analisarComTela(modo, c) {
   pv.width = Math.round(w * dpr); pv.height = Math.round(h * dpr);
   pv.style.width = Math.round(w) + "px"; pv.style.height = Math.round(h) + "px";
   const gp = pv.getContext("2d"); gp.imageSmoothingQuality = "high"; gp.drawImage(c, 0, 0, pv.width, pv.height);
-  $("#analise-titulo").textContent = modo === "fita" ? "Analisando a fita" : "Analisando a amostra";
+  $("#analise-titulo").textContent = modo === "fita" ? "Analisando a fita" : "Analisando a água";
   const passos = modo === "fita"
     ? ["Procurando a fita na foto", "Lendo a cor de cada bloco", "Comparando com a cartela"]
-    : ["Procurando a amostra na foto", "Lendo a cor da água", "Avaliando a aparência"];
+    : ["Procurando a água na foto", "Separando a água do fundo", "Comparando com a cartela"];
   $("#analise-passos").innerHTML = passos.map(t => `<li>${t}</li>`).join("");
   const lis = [...$("#analise-passos").children];
   tela.classList.remove("saindo");
