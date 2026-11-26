@@ -626,7 +626,7 @@ html.travado, html.travado body{ overflow:hidden; }
         <div class="marcar" id="marcar" hidden>
           <p class="marcar-titulo" id="marcar-titulo">Marque os blocos da fita</p>
           <p class="marcar-agora" id="marcar-agora" aria-live="polite"></p>
-          <div class="marcar-fita" aria-hidden="true">
+          <div class="marcar-fita" id="marcar-fita" aria-hidden="true">
             <span>ponta</span>
             <svg viewBox="0 0 220 34" id="marcar-ilu">
               <rect x="1" y="3" width="218" height="28" rx="4" fill="#FBF8F1" stroke="#CDD3DF"/>
@@ -639,7 +639,7 @@ html.travado, html.travado body{ overflow:hidden; }
             <span>cabo</span>
           </div>
           <ol class="marcar-passos" id="marcar-passos"></ol>
-          <div class="marcar-acoes">
+          <div class="marcar-acoes" id="marcar-acoes">
             <button type="button" class="btn mini" id="marcar-desfazer">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14.5 4.5 10 9 5.5M5 10h9.5a5 5 0 0 1 0 10H11" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Desfazer
@@ -653,7 +653,7 @@ html.travado, html.travado body{ overflow:hidden; }
         <div class="veredito" id="veredito" data-estado="pendente" aria-live="polite" hidden></div>
         <button type="button" class="btn ghost mini marcar-mao" id="btn-marcar-mao" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v4M12 16.5v4M3.5 12h4M16.5 12h4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.9"/></svg>
-          Marcas no lugar errado? Marque os blocos à mão
+          <span id="btn-marcar-mao-t">Marcas no lugar errado? Marque os blocos à mão</span>
         </button>
       </div>
       <ol class="guide" id="guia"></ol>
@@ -1115,16 +1115,18 @@ function render() {
   $("#btn-video").hidden = tem;
   $("#btn-novo").hidden = !tem;
   $("#stage").hidden = !tem;
-  // marcando os blocos à mão: o resultado aparece quando os 4 estiverem marcados
-  const marcando = tem && est.id === "fita" && !!est.manual;
-  const completo = !marcando || MODOS.fita.pontos.every(p => est.marcas[p.id]);
+  // marcando à mão: o resultado aparece quando tudo estiver marcado (4 blocos da fita, ou o ponto da água)
+  const marcando = tem && !!est.manual;
+  const completo = !marcando || MODOS[est.id].pontos.every(p => est.marcas[p.id]);
   $("#marcar").hidden = !marcando;
   $("#marcar").classList.toggle("ultimo", !completo);
   $("#stage").classList.toggle("marcando", marcando);
-  cv.setAttribute("aria-label", marcando ? "Foto da fita: toque em cada quadrado, na ordem da fita" : "Foto com os blocos lidos marcados");
+  cv.setAttribute("aria-label", !marcando ? "Foto com os blocos lidos marcados"
+    : est.id === "fita" ? "Foto da fita: toque em cada quadrado, na ordem da fita" : "Foto da água: toque em cima da água");
   $("#veredito").hidden = !tem || !completo;
   $("#card-resultado").hidden = !tem || !completo;
-  $("#btn-marcar-mao").hidden = !tem || est.id !== "fita" || marcando;
+  $("#btn-marcar-mao").hidden = !tem || marcando;
+  if (tem) $("#btn-marcar-mao-t").textContent = est.id === "fita" ? "Marcas no lugar errado? Marque os blocos à mão" : "Não é a água? Marque a água à mão";
   $(".layout").classList.toggle("so-scan", !tem || !completo);
   renderFoto(est);
   if (!tem) return;
@@ -1257,7 +1259,11 @@ function veredito(est, L) {
       const faltam = L.params.filter(r => !r.lido).map(r => r.p.curto);
       return { falha: true, titulo: "Leitura incompleta", sub: `Não deu para ler ${juntar(faltam)}. Tire outra foto, mais de perto e com boa luz.` };
     }
-    if (S.modo === "agua") return vereditoAgua(lidos[0]);
+    if (S.modo === "agua") {
+      const va = vereditoAgua(lidos[0]);
+      if (est && est.manual) va.nota = [va.nota, "Água marcada à mão: a cor foi lida no círculo que você marcou. Se ele caiu fora da água, toque em cima dela na foto."].filter(Boolean).join(" ");
+      return va;
+    }
     const incertos = lidos.filter(r => confianca(r.d) === "incerta").map(r => (CORRECAO[r.p.id] || {}).rot || r.p.nome);
     if (incertos.length) avisos.push(`Leitura incerta em ${juntar(incertos)}: se puder, tire outra foto com mais luz.`);
     if (est && est.manual) avisos.push("Blocos marcados à mão: confira se cada marca está no quadrado certo.");
@@ -1412,7 +1418,8 @@ function cartaoAmostra(L, est) {
   const lin = L.pontos.agua;
   if (!lin) return `<div class="sample"><div class="sample-sw"></div><div><p class="eyebrow">Cor da amostra</p><p class="rgb">Nenhuma água foi achada nesta foto.</p></div></div>`;
   const rgb = lin.map(v => Math.round(toSrgb(v)));
-  const ref = est && est.tipoAgua === "superficie" ? "Cor da maior parte da água, sem os reflexos do céu."
+  const ref = est && est.manual ? "Cor da água no círculo que você marcou, sem os reflexos."
+    : est && est.tipoAgua === "superficie" ? "Cor da maior parte da água, sem os reflexos do céu."
     : est && est.tipoAgua === "lado" ? (est.ref ? "Cor da água dentro do copo, comparada com o fundo claro em volta." : "Cor da água dentro do copo, sem os brilhos do vidro.")
     : est && est.ref ? "Comparada com o fundo em volta do copo." : "Sem fundo claro em volta do copo: cor lida direto da foto.";
   return `<div class="sample"><div class="sample-sw" style="background:${L.hexPonto.agua}"></div>` +
@@ -1478,14 +1485,14 @@ function desenhar() {
     ctx.lineWidth = 1.75; ctx.strokeStyle = cores.escuro; ctx.stroke();
     ctx.restore();
   }
-  const itens = [], marcando = est.id === "fita" && est.manual;
+  const itens = [], marcando = !!est.manual;
   for (const p of MODOS[est.id].pontos) {
     const m = est.marcas[p.id];
     if (m) itens.push({ x: m.x * s, y: m.y * s, tag: p.tag, ativo: marcando && est.ativo === p.id, previa: false });
   }
   // marcando com o mouse: um anel tracejado mostra onde a próxima marca vai ficar
   if (marcando && est.ativo && S.hover) {
-    const p = MODOS.fita.pontos.find(q => q.id === est.ativo);
+    const p = MODOS[est.id].pontos.find(q => q.id === est.ativo);
     itens.push({ x: S.hover.x * s, y: S.hover.y * s, tag: p.tag, ativo: true, previa: true });
   }
   // Primeiro os anéis; depois as etiquetas, que desviam umas das outras e dos anéis vizinhos.
@@ -2757,8 +2764,8 @@ function aplicarAuto(est, r) {
   if (r.raio) est.raio = Math.min(est.id === "agua" ? 14 : 5, Math.max(0.25, Math.round(r.raio * 4) / 4));
   est.auto = r.ok ? "ok" : Object.keys(r.marcas).length ? "parcial" : "falhou";
   est.ativo = MODOS[est.id].pontos.map(p => p.id).find(id => !est.marcas[id]) || null;
-  // fita não achada: a pessoa marca cada bloco tocando na foto, na ordem da fita
-  est.manual = est.id === "fita" && !r.ok;
+  // nada achado: a pessoa marca na foto (os 4 blocos da fita, na ordem, ou um ponto em cima da água)
+  est.manual = !r.ok;
   est.historico = []; est.tamanhos = {};
 }
 
@@ -2773,8 +2780,20 @@ const PASSOS_MARCAR = {
   ph: "Agora toque no <b>3º quadrado, o do pH</b>.",
   dc: "Por último, toque no <b>4º quadrado, o da dureza total</b>, o mais perto do cabo.",
 };
+// Água: um toque em cima da água; a cor é lida num círculo em volta do toque, sem os reflexos.
+const RAIO_AGUA_MAO = 3.5; // círculo de leitura, em % do lado menor da foto
 let ultimoMarcar = "";
 function renderMarcar(est, L) {
+  const agua = est.id === "agua";
+  $("#marcar-fita").hidden = agua; $("#marcar-passos").hidden = agua; $("#marcar-acoes").hidden = agua;
+  if (agua) {
+    $("#marcar-titulo").textContent = est.auto === "ok" ? "Marque a água à mão" : "Não achamos a água sozinhos";
+    const txt = !est.marcas.agua
+      ? "Toque na foto <b>em cima da água</b>. No rio, escolha um lugar sem o reflexo do céu; no copo, o meio da água."
+      : "Pronto, a cor foi lida dentro do círculo. Para ler outro lugar, toque de novo na foto.";
+    if ($("#marcar-agora").innerHTML !== txt) $("#marcar-agora").innerHTML = txt;
+    return;
+  }
   const pontos = MODOS.fita.pontos, idx = pontos.findIndex(p => p.id === est.ativo);
   $("#marcar-titulo").textContent = est.auto === "ok" ? "Marque os blocos à mão" : "Não achamos a fita sozinhos";
   const agora = est.ativo ? PASSOS_MARCAR[est.ativo]
@@ -2879,9 +2898,18 @@ function brancosDasMarcas(est) {
 
 function marcarNaFoto(ev) {
   const est = atual();
-  if (!est || est.id !== "fita" || !est.manual || !est.ativo) return;
+  if (!est || !est.manual || !est.ativo) return;
   const pt = pontoNaFoto(ev, est);
   if (!pt) return;
+  const reduz = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (est.id === "agua") {
+    // um ponto só: cada toque lê a cor num novo lugar
+    const primeiro = !est.marcas.agua;
+    est.marcas.agua = pt; est.raio = RAIO_AGUA_MAO; S.hover = null;
+    render();
+    if (primeiro) mostrarResultado(reduz);
+    return;
+  }
   const id = est.ativo, bloco = centralizarNoBloco(est, pt.x, pt.y);
   est.marcas[id] = bloco ? { x: bloco.x, y: bloco.y } : pt;
   est.tamanhos[id] = bloco ? bloco.tam : null;
@@ -2892,12 +2920,15 @@ function marcarNaFoto(ev) {
   S.hover = null;
   atualizarMarcasManuais(est);
   render();
-  if (!est.ativo) mostrarResultado(matchMedia("(prefers-reduced-motion: reduce)").matches);
+  if (!est.ativo) mostrarResultado(reduz);
 }
 
 function comecarMarcacao(est) {
   est.manual = true; est.marcas = {}; est.historico = []; est.tamanhos = {};
-  est.ativo = MODOS.fita.pontos[0].id; est.brancos = null; est.eixo = null;
+  est.ativo = MODOS[est.id].pontos[0].id; est.brancos = null; est.eixo = null;
+  // água: o que a leitura automática tinha achado (copo, região, fundo, cor) deixa de valer
+  est.copo = null; est.regiao = null; est.ref = null; est.corAgua = null; est.tipoAgua = null;
+  if (est.id === "agua") est.raio = RAIO_AGUA_MAO;
 }
 
 /* ---------- Fotos do usuário ---------- */
@@ -3232,7 +3263,7 @@ function textoLeitura() {
   const out = [`Aqua · ${modo.nome} · ${quando}`];
   const v = veredito(est, L);
   out.push(`Resultado: ${v.titulo}${v.falha ? "" : ` (nível ${v.nivel} de 5)`}${v.sub ? ". " + v.sub : ""}`);
-  if (S.modo === "fita" && est.manual) out.push("Blocos marcados à mão na foto.");
+  if (est.manual) out.push(S.modo === "fita" ? "Blocos marcados à mão na foto." : "Água marcada à mão na foto.");
   (v.dicas || []).forEach(d => out.push(`- ${d.rotulo} ${d.texto}`));
   if (S.modo === "agua") {
     const lin = L.pontos.agua;
@@ -3306,7 +3337,7 @@ $("#vazio-scan").addEventListener("click", abrirCamera);
 // marcar os blocos à mão: toque na foto, escolha de qual bloco marcar, desfazer e recomeçar
 cv.addEventListener("click", marcarNaFoto);
 cv.addEventListener("pointermove", ev => {
-  const est = atual(), ok = ev.pointerType === "mouse" && est && est.id === "fita" && est.manual && est.ativo;
+  const est = atual(), ok = ev.pointerType === "mouse" && est && est.manual && est.ativo;
   const novo = ok ? pontoNaFoto(ev, est) : null;
   if (novo || S.hover) { S.hover = novo; pedirDesenho(); }
 });
@@ -3334,7 +3365,7 @@ $("#marcar-limpar").addEventListener("click", () => {
 });
 $("#btn-marcar-mao").addEventListener("click", () => {
   const est = atual();
-  if (!est || est.id !== "fita") return;
+  if (!est) return;
   comecarMarcacao(est);
   render();
   $("#marcar").scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
