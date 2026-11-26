@@ -94,8 +94,12 @@ h2{ margin:0 0 8px; font-weight:900; font-size:clamp(28px, 6vw, 36px); line-heig
   display:grid; place-items:center; background:var(--cyan); color:var(--navy); font-weight:800; font-size:17px; }
 .passos strong{ display:block; font-size:17.5px; line-height:1.3; }
 .passos span{ display:block; color:var(--ink-muted); font-size:15.5px; }
-.porque{ margin:18px 0 0; padding:16px 18px; border-radius:16px; border:1px dashed var(--navy-line); color:var(--muted); font-size:15.5px; }
-.porque strong{ color:var(--white); }
+.ajuda{ padding:20px 22px; border-radius:18px; background:var(--aviso-soft); color:#3D2D00; }
+.ajuda ul{ margin:0; padding:0; list-style:none; display:grid; gap:18px; }
+.ajuda li{ font-size:16.5px; line-height:1.45; }
+.ajuda li > strong{ display:block; margin-bottom:3px; color:var(--ink); font-size:17px; line-height:1.3; }
+.ajuda b{ color:var(--ink); }
+.nota{ margin:14px 0 0; color:var(--muted); font-size:15px; }
 
 /* QR code */
 .qr{ display:grid; gap:22px; align-items:center; }
@@ -139,19 +143,19 @@ h2{ margin:0 0 8px; font-weight:900; font-size:clamp(28px, 6vw, 36px); line-heig
           <img src="icon-192.png" alt="" width="192" height="192">
           <div>
             <strong>Aqua</strong>
-            <span>Versão 1.2 · 2 MB · Android 6 ou mais novo</span>
+            <span>Versão 1.3 · 2 MB · Android 5 ou mais novo</span>
           </div>
         </div>
 
         <p class="aviso-plataforma" id="aviso-iphone"><strong>No iPhone o app não instala.</strong> O Aqua funciona igualzinho pelo navegador: toque em “Usar no navegador”.</p>
         <p class="aviso-plataforma" id="aviso-app"><strong>Você já está no app Aqua.</strong> Não precisa baixar de novo.</p>
 
-        <a class="botao" id="baixar" href="Aqua.apk" download="Aqua.apk" type="application/vnd.android.package-archive">
+        <a class="botao" id="baixar" href="Aqua.apk?v=1.3" download="Aqua.apk" type="application/vnd.android.package-archive">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/><path d="M4 20h16"/></svg>
           Baixar o Aqua
         </a>
         <a class="botao-2" href="./">Usar no navegador, sem instalar</a>
-        <p class="detalhes">O app precisa de internet para funcionar.</p>
+        <p class="detalhes">Precisa de internet. Na primeira vez, o celular pede para você permitir a instalação (veja abaixo).</p>
       </div>
 
       <ul class="recursos" aria-label="O que o Aqua faz">
@@ -172,16 +176,29 @@ h2{ margin:0 0 8px; font-weight:900; font-size:clamp(28px, 6vw, 36px); line-heig
 
     <section class="secao" aria-labelledby="como">
       <h2 id="como">Como instalar</h2>
-      <p class="sub">Leva menos de um minuto. Faça pelo celular Android.</p>
+      <p class="sub">Faça pelo celular Android.</p>
       <ol class="passos">
-        <li><strong>Toque em “Baixar o Aqua”</strong><span>Se o navegador perguntar, toque em “Baixar mesmo assim”.</span></li>
-        <li><strong>Abra o arquivo Aqua.apk</strong><span>Pela notificação do download ou pela pasta Downloads.</span></li>
-        <li><strong>Permita a instalação</strong><span>Se o celular pedir, ative “Permitir desta fonte” e volte.</span></li>
-        <li><strong>Se aparecer o aviso do Play Protect</strong><span>Toque em “Mais detalhes” e depois em “Instalar mesmo assim”.</span></li>
+        <li><strong>Toque em “Baixar o Aqua”</strong><span>Se o navegador avisar sobre o arquivo, toque em “Baixar mesmo assim”.</span></li>
+        <li><strong>Abra o Aqua.apk pelo app Meus arquivos</strong><span>Ele fica em Downloads (ou Transferências). Por lá funciona melhor do que pela lista do navegador.</span></li>
+        <li><strong>Permita a instalação</strong><span>Se o celular pedir, ative “Permitir desta fonte”, volte e toque no Aqua.apk de novo.</span></li>
+        <li><strong>Toque em “Instalar”</strong><span>Se o Play Protect avisar, toque em “Mais detalhes” e depois em “Instalar mesmo assim”.</span></li>
         <li><strong>Abra o Aqua</strong><span>Na primeira vez que usar a câmera, toque em “Permitir”.</span></li>
-        <li><strong>Já tem o Aqua?</strong><span>Baixe e instale de novo: a versão nova entra por cima da antiga.</span></li>
+        <li><strong>Para atualizar</strong><span>Baixe a versão nova e instale por cima. Não precisa desinstalar.</span></li>
       </ol>
-      <p class="porque"><strong>Por que aparece aviso?</strong> O Aqua é um projeto escolar e não está na Play Store. O Android avisa sobre todo app instalado de fora da loja, mesmo os seguros.</p>
+    </section>
+
+    <section class="secao" aria-labelledby="erros">
+      <h2 id="erros">Se der erro ao instalar</h2>
+      <p class="sub">Procure a mensagem que apareceu no celular:</p>
+      <div class="ajuda">
+        <ul>
+          <li><strong>“Ocorreu um problema ao analisar o pacote”</strong>Apague o Aqua.apk que você já baixou, baixe de novo e abra pelo app <b>Meus arquivos</b>. Se continuar, veja a versão do Android em <b>Configurações → Sobre o telefone → Informações do software</b>: o Aqua precisa do Android 5 ou mais novo.</li>
+          <li><strong>“Bloqueado pelo Bloqueador automático”</strong>Nos celulares Samsung, vá em <b>Configurações → Segurança e privacidade → Bloqueador automático</b>, desative, instale o Aqua e depois ative de novo.</li>
+          <li><strong>“…não tem permissão para instalar apps desconhecidos desta fonte”</strong>Toque em <b>Configurações</b>, ative <b>Permitir desta fonte</b>, volte e abra o Aqua.apk de novo.</li>
+          <li><strong>“App não instalado”</strong>Se já existe outro Aqua no celular, de um teste antigo, desinstale e instale este.</li>
+        </ul>
+      </div>
+      <p class="nota">Os nomes dos menus podem mudar um pouco conforme a marca do celular. Não deu certo? <a href="./">Use o Aqua no navegador</a>: funciona na hora, em qualquer celular.</p>
     </section>
 
     <section class="secao qr" aria-labelledby="qr">
