@@ -2591,6 +2591,9 @@ function carregarArquivo(file) {
   img.onload = () => {
     const sc = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
     const [c, g] = novaTela(Math.max(1, Math.round(img.naturalWidth * sc)), Math.max(1, Math.round(img.naturalHeight * sc)));
+    // imagem com fundo transparente (PNG): o transparente vira branco, como aparece na tela
+    g.fillStyle = "#FFFFFF";
+    g.fillRect(0, 0, c.width, c.height);
     g.drawImage(img, 0, 0, c.width, c.height);
     URL.revokeObjectURL(url);
     analisarComTela(modo, c);
