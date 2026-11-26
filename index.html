@@ -219,7 +219,8 @@ html.travado, html.travado body{ overflow:hidden; }
 .vh{ position:absolute !important; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; opacity:0; }
 .visor{ display:grid; }
 .stage{ position:relative; display:grid; place-items:center; min-height:180px; overflow:hidden; background:var(--navy); border-radius:12px 12px 0 0; }
-.stage canvas{ display:block; max-width:100%; cursor:crosshair; touch-action:manipulation; }
+.stage canvas{ display:block; max-width:100%; touch-action:manipulation; }
+.stage.marcando canvas{ cursor:crosshair; }
 .stage.drop{ outline:2px dashed var(--cyan); outline-offset:-8px; }
 
 /* Veredito em 5 níveis, de totalmente fora a totalmente dentro dos padrões (logo abaixo da foto) */
@@ -230,6 +231,33 @@ html.travado, html.travado body{ overflow:hidden; }
 .veredito[data-estado="n4"]{ --v-cor:var(--n4); --v-soft:var(--n4-soft); }
 .veredito[data-estado="n5"]{ --v-cor:var(--n5); --v-soft:var(--n5-soft); }
 .veredito[data-estado="falha"]{ --v-cor:var(--idle); --v-soft:var(--idle-soft); }
+/* Marcar os blocos à mão: aparece embaixo da foto quando a fita não é achada sozinha */
+.marcar{ display:grid; gap:12px; padding:14px 16px 16px; background:var(--cyan-soft); color:var(--ink); }
+.marcar.ultimo{ border-radius:0 0 12px 12px; }
+@media (max-width:480px){ .marcar{ padding:13px 12px 14px; } }
+.marcar-titulo{ margin:0; font-size:20px; font-weight:800; line-height:1.15; letter-spacing:-.005em; }
+.marcar-agora{ margin:0; font-size:15.5px; line-height:1.4; }
+.marcar-agora b{ font-weight:800; }
+.marcar-fita{ display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:700; color:var(--muted); }
+.marcar-fita svg{ flex:1 1 auto; min-width:0; max-width:300px; height:auto; }
+.marcar-fita .pad{ stroke:rgb(0 16 62 / .22); stroke-width:1; }
+.marcar-fita .pad.agora{ stroke:var(--navy); stroke-width:2.6; }
+.marcar-fita text{ font:800 11px system-ui, sans-serif; fill:var(--navy); text-anchor:middle; dominant-baseline:central; }
+.marcar-passos{ margin:0; padding:0; list-style:none; display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; }
+@media (min-width:560px){ .marcar-passos{ grid-template-columns:repeat(4, minmax(0,1fr)); } }
+.passo{ width:100%; min-height:54px; display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; gap:7px; padding:8px; border:1.5px solid var(--rule-strong); border-radius:12px; background:var(--card); color:var(--ink); font:inherit; text-align:left; cursor:pointer; }
+.passo:hover{ border-color:var(--ink); }
+.passo .num{ display:grid; place-items:center; width:24px; height:24px; border-radius:50%; background:var(--wash); box-shadow:inset 0 0 0 1.5px var(--rule-strong); font-size:14.5px; font-weight:800; }
+.passo b{ display:block; font-size:clamp(12.5px, 3.7vw, 14px); font-weight:800; line-height:1.2; overflow-wrap:break-word; }
+.passo small{ display:flex; align-items:center; gap:5px; margin-top:1px; font-size:12.5px; color:var(--muted); }
+.passo .sw{ width:12px; height:12px; flex:none; border-radius:3px; box-shadow:inset 0 0 0 1px var(--edge); }
+.passo.feito .num{ background:var(--navy); color:var(--white); box-shadow:none; }
+.passo[aria-current="step"]{ border-color:var(--navy); background:var(--verde); }
+.passo[aria-current="step"] .num{ background:var(--navy); color:var(--verde); box-shadow:none; }
+.passo[aria-current="step"] small{ color:var(--navy); font-weight:700; }
+.marcar-acoes{ display:flex; flex-wrap:wrap; gap:8px; }
+.marcar-acoes .btn[disabled]{ opacity:.45; cursor:default; }
+.marcar-mao{ justify-self:start; margin-top:8px; }
 .ver-icone{ display:grid; place-items:center; width:42px; height:42px; border-radius:50%; background:var(--v-cor); color:var(--white); }
 .ver-icone svg{ width:24px; height:24px; }
 /* medidor de 5 níveis */
@@ -376,7 +404,7 @@ html.travado, html.travado body{ overflow:hidden; }
 .rodape-copy{ font-weight:800; color:var(--navy); }
 .rodape-base .rodape-aviso{ margin-top:6px; font-size:12.5px; }
 
-.toast{ position:fixed; z-index:20; left:50%; bottom:calc(20px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%); max-width:calc(100% - 32px); padding:11px 16px; border-radius:10px; background:var(--cyan); color:var(--navy); font-size:15px; font-weight:800; box-shadow:var(--shadow); }
+.toast{ position:fixed; z-index:20; left:50%; bottom:calc(20px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%); width:max-content; max-width:min(520px, calc(100% - 32px)); padding:11px 16px; border-radius:10px; background:var(--cyan); color:var(--navy); font-size:15px; font-weight:800; box-shadow:var(--shadow); }
 
 /* Tela de carregamento: a gota cai no lugar e as letras enchem de água */
 .splash{ position:fixed; inset:0; z-index:60; display:grid; place-items:center; background:var(--navy); cursor:pointer; transition:opacity .45s ease, visibility .45s; }
@@ -429,7 +457,7 @@ html.travado, html.travado body{ overflow:hidden; }
 @keyframes girar{ to{ transform:rotate(360deg); } }
 
 /* o resultado chega depois da análise */
-.veredito.chegou{ animation:chegou .55s cubic-bezier(.2,.8,.3,1.15) both; }
+.veredito.chegou, .marcar.chegou{ animation:chegou .55s cubic-bezier(.2,.8,.3,1.15) both; }
 .veredito.chegou .ver-icone{ animation:pulo .6s .12s cubic-bezier(.2,.9,.3,1.45) both; }
 @keyframes chegou{ from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:none; } }
 @keyframes pulo{ from{ transform:scale(.2); } to{ transform:scale(1); } }
@@ -595,7 +623,38 @@ html.travado, html.travado body{ overflow:hidden; }
         <div class="stage" id="stage" hidden>
           <canvas id="cv" role="img" aria-label="Foto com os blocos lidos marcados"></canvas>
         </div>
+        <div class="marcar" id="marcar" hidden>
+          <p class="marcar-titulo" id="marcar-titulo">Marque os blocos da fita</p>
+          <p class="marcar-agora" id="marcar-agora" aria-live="polite"></p>
+          <div class="marcar-fita" aria-hidden="true">
+            <span>ponta</span>
+            <svg viewBox="0 0 220 34" id="marcar-ilu">
+              <rect x="1" y="3" width="218" height="28" rx="4" fill="#FBF8F1" stroke="#CDD3DF"/>
+              <rect class="pad" data-k="0" x="7" y="7" width="20" height="20" rx="2" fill="#FEFAD8"/>
+              <rect class="pad" data-k="1" x="41" y="7" width="20" height="20" rx="2" fill="#B9AB2F"/>
+              <rect class="pad" data-k="2" x="75" y="7" width="20" height="20" rx="2" fill="#EE7D60"/>
+              <rect class="pad" data-k="3" x="109" y="7" width="20" height="20" rx="2" fill="#84A4A3"/>
+              <text x="17" y="17">1</text><text x="51" y="17">2</text><text x="85" y="17">3</text><text x="119" y="17">4</text>
+            </svg>
+            <span>cabo</span>
+          </div>
+          <ol class="marcar-passos" id="marcar-passos"></ol>
+          <div class="marcar-acoes">
+            <button type="button" class="btn mini" id="marcar-desfazer">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14.5 4.5 10 9 5.5M5 10h9.5a5 5 0 0 1 0 10H11" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Desfazer
+            </button>
+            <button type="button" class="btn mini" id="marcar-limpar">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4h-4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Recomeçar
+            </button>
+          </div>
+        </div>
         <div class="veredito" id="veredito" data-estado="pendente" aria-live="polite" hidden></div>
+        <button type="button" class="btn ghost mini marcar-mao" id="btn-marcar-mao" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v4M12 16.5v4M3.5 12h4M16.5 12h4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.9"/></svg>
+          Marcas no lugar errado? Marque os blocos à mão
+        </button>
       </div>
       <ol class="guide" id="guia"></ol>
     </section>
@@ -698,7 +757,8 @@ html.travado, html.travado body{ overflow:hidden; }
    passo = arredondamento da leitura; casas = [mín, máx] de casas decimais.
    ===================================================================== */
 const CARTELA_FITA = [
-  { id: "cl",  tag: "Cl",  nome: "Cloro livre",    curto: "cloro livre",    unidade: "ppm", ideal: [1, 3],     passo: 0.5, casas: [0, 1],
+  // brancoZero: sem cloro o bloco não reage e fica branco ou cinza-claro, como a própria fita; isso vale 0
+  { id: "cl",  tag: "Cl",  nome: "Cloro livre",    curto: "cloro livre",    unidade: "ppm", ideal: [1, 3],     passo: 0.5, casas: [0, 1], brancoZero: true,
     escala: [[0, "#FEFAD8"], [1, "#FADBB1"], [2, "#E9C9C3"], [3, "#DBC1D3"], [5, "#AA82A2"], [10, "#7B5E89"]] },
   { id: "alk", tag: "Alk", nome: "Alcalinidade",   curto: "alcalinidade",   unidade: "ppm", ideal: [80, 120],  passo: 10,  casas: [0, 0], rotulos: ["0–20"],
     escala: [[20, "#EAB021"], [40, "#B9AB2F"], [80, "#919E2A"], [120, "#719640"], [180, "#5F8564"], [240, "#618D7B"]] },
@@ -902,6 +962,11 @@ function estimar(p, lab) {
     if (!best || d < best.d - 1e-9) best = { i, t, d };
   }
   const { i, t, d } = best;
+  // bloco que não reagiu (branco ou cinza, sem o tom da cartela): vale o primeiro valor da escala
+  if (p.brancoZero && Math.hypot(lab[1], lab[2]) <= 12) {
+    const dn = de2000(lab, [lab[0], 0, 0]);
+    if (dn < d) return { v: V[0], frac: 0, d: dn, noTopo: false, naBase: true, entre: null, perto: V[0] };
+  }
   const frac = i + t;
   return {
     v: V[i] + t * (V[i + 1] - V[i]),
@@ -953,7 +1018,7 @@ const MODOS = {
       "Retire com as cores para cima e agite de leve.",
       "Fotografe só a fita, na hora, sobre papel branco e com luz do dia.",
     ],
-    nota: "Cores de referência tiradas da cartela impressa no pote. A leitura por foto é uma estimativa e depende da luz.",
+    nota: "Cores de referência tiradas da cartela impressa no pote. A cor de cada bloco é comparada com o branco da própria fita ao lado dele, o que corrige boa parte da luz da foto. Sem cloro, o bloco do cloro fica branco e vale 0. A leitura por foto é uma estimativa.",
   },
   agua: {
     nome: "Água direta",
@@ -1012,6 +1077,8 @@ function ler(est) {
       : est.corAgua ? est.corAgua.slice() : amostrarAgua(est.data, est.w, est.h, m.x, m.y, r);
     // água: a cor é lida em relação ao fundo em volta do copo, como se o copo estivesse sobre papel branco
     if (raw && est.id === "agua" && est.ref) raw = corrigirAgua(raw, est.ref);
+    // fita: a cor do bloco em relação ao branco da própria fita ao lado dele (corrige luz e exposição da foto)
+    if (raw && est.id === "fita" && est.brancos && est.brancos[p.id]) raw = equilibrar(raw, est.brancos[p.id]);
     if (raw) { pontos[p.id] = raw; hexPonto[p.id] = rgbToHex(raw.map(toSrgb)); }
   }
   const params = modo.params.map(p => {
@@ -1048,13 +1115,23 @@ function render() {
   $("#btn-video").hidden = tem;
   $("#btn-novo").hidden = !tem;
   $("#stage").hidden = !tem;
-  $("#veredito").hidden = !tem;
-  $("#card-resultado").hidden = !tem;
-  $(".layout").classList.toggle("so-scan", !tem);
+  // marcando os blocos à mão: o resultado aparece quando os 4 estiverem marcados
+  const marcando = tem && est.id === "fita" && !!est.manual;
+  const completo = !marcando || MODOS.fita.pontos.every(p => est.marcas[p.id]);
+  $("#marcar").hidden = !marcando;
+  $("#marcar").classList.toggle("ultimo", !completo);
+  $("#stage").classList.toggle("marcando", marcando);
+  cv.setAttribute("aria-label", marcando ? "Foto da fita: toque em cada quadrado, na ordem da fita" : "Foto com os blocos lidos marcados");
+  $("#veredito").hidden = !tem || !completo;
+  $("#card-resultado").hidden = !tem || !completo;
+  $("#btn-marcar-mao").hidden = !tem || est.id !== "fita" || marcando;
+  $(".layout").classList.toggle("so-scan", !tem || !completo);
   renderFoto(est);
   if (!tem) return;
   const L = ler(est);
   desenhar();
+  if (marcando) renderMarcar(est, L);
+  if (!completo) return;
   renderVeredito(est, L);
   renderResultado(est, L);
 }
@@ -1183,6 +1260,7 @@ function veredito(est, L) {
     if (S.modo === "agua") return vereditoAgua(lidos[0]);
     const incertos = lidos.filter(r => confianca(r.d) === "incerta").map(r => (CORRECAO[r.p.id] || {}).rot || r.p.nome);
     if (incertos.length) avisos.push(`Leitura incerta em ${juntar(incertos)}: se puder, tire outra foto com mais luz.`);
+    if (est && est.manual) avisos.push("Blocos marcados à mão: confira se cada marca está no quadrado certo.");
     const fora = lidos.filter(r => r.status !== "ideal")
       .sort((a, b) => ((CORRECAO[a.p.id] || {}).ordem || 9) - ((CORRECAO[b.p.id] || {}).ordem || 9));
     const dentro = N - fora.length, nivel = nivelPorContagem(dentro, N);
@@ -1400,10 +1478,15 @@ function desenhar() {
     ctx.lineWidth = 1.75; ctx.strokeStyle = cores.escuro; ctx.stroke();
     ctx.restore();
   }
-  const itens = [];
+  const itens = [], marcando = est.id === "fita" && est.manual;
   for (const p of MODOS[est.id].pontos) {
     const m = est.marcas[p.id];
-    if (m) itens.push({ x: m.x * s, y: m.y * s, tag: p.tag, ativo: false, previa: false });
+    if (m) itens.push({ x: m.x * s, y: m.y * s, tag: p.tag, ativo: marcando && est.ativo === p.id, previa: false });
+  }
+  // marcando com o mouse: um anel tracejado mostra onde a próxima marca vai ficar
+  if (marcando && est.ativo && S.hover) {
+    const p = MODOS.fita.pontos.find(q => q.id === est.ativo);
+    itens.push({ x: S.hover.x * s, y: S.hover.y * s, tag: p.tag, ativo: true, previa: true });
   }
   // Primeiro os anéis; depois as etiquetas, que desviam umas das outras e dos anéis vizinhos.
   itens.forEach(it => anel(it, r, cores));
@@ -1708,7 +1791,8 @@ function segmentar(pts, an, tam) {
 }
 
 // Só a fita 4 em 1: 4 blocos em fila, que da ponta para o cabo são Cl, Alk, pH e DT.
-// Aceita 4 blocos seguidos, do mesmo tamanho, com espaços parecidos e cores que batem com a cartela nessa ordem.
+// Aceita 4 blocos seguidos, do mesmo tamanho, com espaços parecidos e cores que batem com a cartela nessa ordem
+// (ou 3 coloridos e o do cloro branco, quando a água não tem cloro).
 // Um copo, um reflexo ou outra fita não passam por essas regras, e aí nada é lido.
 const COR_MAX_FITA = 18; // diferença de cor máxima (CIEDE2000) entre cada bloco e a cartela do seu parâmetro
 // Quanto de um trecho do perfil (entre a e b) é branco da fita: claro e quase sem cor, como os vãos entre os blocos.
@@ -1721,8 +1805,24 @@ function fracBranco(pts, a, b, Lref) {
   }
   return k ? ok / k : 0;
 }
+// A claridade típica do branco da fita: a mediana nos vãos entre blocos seguidos (q em ordem de t).
+function brancoDosVaos(pts, q) {
+  const Ls = [];
+  for (let k = 0; k + 1 < q.length; k++) for (const p of pts)
+    if (p.lab && p.t > q[k].t + q[k].len / 2 && p.t < q[k + 1].t - q[k + 1].len / 2) Ls.push(p.lab[0]);
+  if (!Ls.length) return null;
+  Ls.sort((a, b) => a - b);
+  return Ls[Ls.length >> 1];
+}
+// Cloro sem reação: o bloco do cloro fica branco ou cinza-claro, quase da cor da própria fita, e não vira
+// mancha colorida. Aí só 3 blocos têm cor (alcalinidade, pH e dureza) e o do cloro é procurado no lugar dele.
+const COR_MAX_FITA_3 = 15;     // com só 3 blocos coloridos, as cores deles têm que bater melhor com a cartela
+const CUSTO_CLORO_SEM_COR = 6; // se os 4 blocos coloridos aparecem, essa leitura ganha
 function fitaQuatroEmUm(pads, tam, aceita, pts) {
-  const ord = pads.slice().sort((a, b) => a.t - b.t);
+  // trechos claros e quase sem cor não são blocos: é o branco da fita com sombra ou com a cor da luz
+  // (os blocos da cartela têm cor forte ou são escuros; o cloro claro é tratado à parte, logo abaixo)
+  const palido = p => p.lab && p.lab[0] >= 70 && Math.hypot(p.lab[1], p.lab[2]) <= 12;
+  const ord = pads.filter(p => !palido(p)).sort((a, b) => a.t - b.t);
   let melhor = null;
   for (let i = 0; i + 4 <= ord.length; i++) {
     const q = ord.slice(i, i + 4);
@@ -1738,13 +1838,7 @@ function fitaQuatroEmUm(pads, tam, aceita, pts) {
     // O que vem logo depois da ponta da fita (a água da piscina, a mesa) não segue esse ritmo e não conta.
     const folga = (vaos[0] + vaos[1] + vaos[2]) / 3;
     // o branco da fita: a claridade típica dos vãos entre os 4 blocos
-    let Lref = null;
-    if (pts) {
-      const Ls = [];
-      for (let k = 0; k < 3; k++) for (const p of pts)
-        if (p.lab && p.t > q[k].t + q[k].len / 2 && p.t < q[k + 1].t - q[k + 1].len / 2) Ls.push(p.lab[0]);
-      if (Ls.length) { Ls.sort((a, b) => a - b); Lref = Ls[Ls.length >> 1]; }
-    }
+    const Lref = pts ? brancoDosVaos(pts, q) : null;
     // um 5º bloco de verdade fica em cima da própria fita: entre ele e os outros só tem o branco da fita.
     // Depois da ponta da fita vem o fundo (plantas, chão, água), e o que estiver lá não conta.
     const mesmoRitmo = (viz, ponta) => {
@@ -1761,6 +1855,47 @@ function fitaQuatroEmUm(pads, tam, aceita, pts) {
       if (ds.some(d => d > COR_MAX_FITA)) continue;
       if (aceita && !aceita(fila)) continue;
       const custo = ds.reduce((soma, d) => soma + d, 0);
+      if (!melhor || custo < melhor.custo) melhor = { custo, fila, ds };
+    }
+  }
+  // 3 blocos coloridos (alcalinidade, pH e dureza) e o do cloro sem cor, um passo antes da alcalinidade
+  if (pts) for (let i = 0; i + 3 <= ord.length; i++) {
+    const q = ord.slice(i, i + 3);
+    if (q.some(p => p.len < 0.5 * tam || p.len > 1.8 * tam || (p.run || p.len) > 1.8 * tam)) continue;
+    const passos = [q[1].t - q[0].t, q[2].t - q[1].t], media = (passos[0] + passos[1]) / 2;
+    if (passos.some(d => d < 0.9 * tam || d > 3.2 * tam || Math.abs(d - media) > 0.25 * media)) continue;
+    const vaos = [0, 1].map(k => (q[k + 1].t - q[k + 1].len / 2) - (q[k].t + q[k].len / 2));
+    if (vaos.some(v => v < 0.4 * tam)) continue;
+    const Lref = brancoDosVaos(pts, q);
+    if (Lref === null) continue;
+    const len = (q[0].len + q[1].len + q[2].len) / 3, folga = (vaos[0] + vaos[1]) / 2;
+    for (const fila3 of [q, q.slice().reverse()]) {
+      const passo = fila3[1].t - fila3[0].t, tCl = fila3[0].t - passo, ap = Math.abs(passo);
+      // no lugar do cloro não pode haver bloco colorido (aí seriam 4 blocos coloridos)
+      if (ord.some(p => Math.abs(p.t - tCl) < 0.35 * ap)) continue;
+      // nem outro bloco no mesmo ritmo depois da dureza ou antes do cloro (seria uma fita de 5 ou 6 blocos)
+      const ritmo = (tAlvo, tPonta, lenPonta) => {
+        const viz = ord.find(p => Math.abs(p.t - tAlvo) <= 0.35 * ap);
+        if (!viz || viz.len < 0.5 * tam || (viz.run || viz.len) > 1.8 * tam) return false;
+        if (Math.abs(viz.t - tPonta) - (viz.len + lenPonta) / 2 < 0.5 * folga) return false;
+        const [a, b] = viz.t > tPonta ? [tPonta + lenPonta / 2, viz.t - viz.len / 2] : [viz.t + viz.len / 2, tPonta - lenPonta / 2];
+        return fracBranco(pts, a, b, Lref) >= 0.6;
+      };
+      if (ritmo(fila3[2].t + passo, fila3[2].t, fila3[2].len) || ritmo(tCl - passo, tCl, len)) continue;
+      // a cor no lugar do cloro: clara (pode ter um pouco de sombra) e quase sem cor
+      let sl = 0, sa = 0, sb = 0, k = 0;
+      for (const p of pts) if (p.lab && Math.abs(p.t - tCl) <= 0.25 * len) { sl += p.lab[0]; sa += p.lab[1]; sb += p.lab[2]; k++; }
+      if (k < 2) continue; // fora da foto
+      const lab = [sl / k, sa / k, sb / k];
+      if (lab[0] < Lref - 25 || Math.hypot(lab[1], lab[2]) > 14) continue;
+      // entre o cloro e a alcalinidade: o branco da fita
+      const [a, b] = tCl < fila3[0].t ? [tCl + len / 2, fila3[0].t - fila3[0].len / 2] : [fila3[0].t + fila3[0].len / 2, tCl - len / 2];
+      if (fracBranco(pts, a, b, Lref) < 0.6) continue;
+      const fila = [{ t: tCl, len, lab, semCor: true }].concat(fila3);
+      const ds = fila.map((p, k) => estimar(CARTELA_FITA[k], p.lab).d);
+      if (ds.some((d, k) => d > (k ? COR_MAX_FITA_3 : COR_MAX_FITA))) continue;
+      if (aceita && !aceita(fila)) continue;
+      const custo = ds.reduce((soma, d) => soma + d, 0) + CUSTO_CLORO_SEM_COR;
       if (!melhor || custo < melhor.custo) melhor = { custo, fila, ds };
     }
   }
@@ -1828,7 +1963,7 @@ function detectarFitaEm(src, lado) {
     const pts = perfil(an, eixo, tam, t0 - 3.6 * tam, t1 + 3.6 * tam);
     let pads = segmentar(pts, an, tam);
     if (pads.length < 2) pads = linha.membros.map(b => ({ t: (b.cx - mx) * ux + (b.cy - my) * uy, len: b.larg }));
-    if (pads.length < 4) continue;
+    if (pads.length < 3) continue; // 3 blocos coloridos bastam: o do cloro sem cloro fica branco
     for (const p of pads) {
       let sl = 0, sa = 0, sb = 0, k = 0;
       for (const q of pts) if (q.lab && Math.abs(q.t - p.t) <= 0.25 * p.len) { sl += q.lab[0]; sa += q.lab[1]; sb += q.lab[2]; k++; }
@@ -1845,9 +1980,49 @@ function detectarFitaEm(src, lado) {
     ok: true,
     cores: achada.ds,
     marcas,
+    brancos: brancosDaFita(an, eixo, tam, achada.fila),
     raio: 100 * 0.28 * tam / an.s / Math.min(src.width, src.height),
     eixo: { nx: -uy, ny: ux, meia: 0.62 * tam / an.s },
   };
+}
+
+// O branco da própria fita ao lado de cada bloco (no meio dos vãos e no cabo, depois da dureza), em luz linear.
+// A cor de cada bloco é lida em relação a ele: assim a luz da sala, a sombra e a foto escura ou clara
+// não mudam a leitura (como na cartela, onde cada cor é comparada com o papel branco).
+function brancosDaFita(an, eixo, tam, fila) {
+  const { mx, my, ux, uy } = eixo, nx = -uy, ny = ux, dir = Math.sign(fila[3].t - fila[0].t) || 1;
+  const meioVao = k => (fila[k].t + dir * fila[k].len / 2 + fila[k + 1].t - dir * fila[k + 1].len / 2) / 2;
+  const ts = [meioVao(0), meioVao(1), meioVao(2)];
+  ts.push(fila[3].t + (fila[3].t - ts[2])); // no cabo, à mesma distância
+  const medir = t => {
+    const px = [];
+    for (let o = -0.22 * tam; o <= 0.22 * tam; o += 0.5) for (let s = -0.12 * tam; s <= 0.12 * tam; s += 0.5) {
+      const x = Math.round(mx + (t + s) * ux + o * nx), y = Math.round(my + (t + s) * uy + o * ny);
+      if (x < 0 || y < 0 || x >= an.w || y >= an.h) continue;
+      const k = (y * an.w + x) * 4, lin = [LIN[an.px[k]], LIN[an.px[k + 1]], LIN[an.px[k + 2]]];
+      px.push({ lin, lab: linToLab(lin) });
+    }
+    return px.length >= 4 ? modaCor(px) : null;
+  };
+  return brancoDeCadaBloco(ts.map(medir));
+}
+
+// Dos brancos medidos nos 4 vãos (entre cloro e alcalinidade, alcalinidade e pH, pH e dureza, e no cabo
+// depois da dureza), o branco de cada bloco: a média dos vãos dos dois lados dele.
+function brancoDeCadaBloco(vaos) {
+  const Y = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  // vale só o que parece o branco da fita: claro perto do vão mais claro e sem cor forte (um dedo no cabo não conta)
+  const topo = Math.max(0, ...vaos.filter(Boolean).map(Y));
+  vaos = vaos.map(c => c && Y(c) >= 0.55 * topo && Math.hypot(...linToLab(c).slice(1)) <= 20 ? c : null);
+  const validos = vaos.filter(Boolean);
+  if (!validos.length) return null;
+  const media = cs => [0, 1, 2].map(i => cs.reduce((s, c) => s + c[i], 0) / cs.length);
+  const geral = media(validos), out = {};
+  CARTELA_FITA.forEach((p, k) => {
+    const lado = [vaos[k - 1], vaos[k]].filter(Boolean);
+    out[p.id] = lado.length ? media(lado) : geral;
+  });
+  return out;
 }
 
 /* ---------- Água direta: acha o copo e separa a água do fundo ----------
@@ -2575,31 +2750,226 @@ function aplicarAuto(est, r) {
   est.eixo = r.eixo || null;
   est.copo = r.copo || null;       // água: contorno do copo achado
   est.ref = r.ref || null;         // água: cor do fundo em volta do copo (branco de referência)
+  est.brancos = r.brancos || null; // fita: o branco da fita ao lado de cada bloco
   est.corAgua = r.cor || null;     // água sem copo: cor da maior parte da água (já lida)
   est.regiao = r.regiao || null;   // água sem copo: blocos da foto que são água
   est.tipoAgua = r.ok ? r.tipo || null : null;
   if (r.raio) est.raio = Math.min(est.id === "agua" ? 14 : 5, Math.max(0.25, Math.round(r.raio * 4) / 4));
   est.auto = r.ok ? "ok" : Object.keys(r.marcas).length ? "parcial" : "falhou";
   est.ativo = MODOS[est.id].pontos.map(p => p.id).find(id => !est.marcas[id]) || null;
+  // fita não achada: a pessoa marca cada bloco tocando na foto, na ordem da fita
+  est.manual = est.id === "fita" && !r.ok;
+  est.historico = []; est.tamanhos = {};
+}
+
+/* ---------- Marcar os blocos à mão ----------
+   Quando a fita não é achada sozinha (ou as marcas ficam no lugar errado), a pessoa toca na foto
+   em cada quadrado, na ordem da fita: cloro livre (na ponta), alcalinidade, pH e dureza total
+   (o mais perto do cabo). Cada toque é ajustado para o meio do quadrado colorido, e a cor de cada
+   bloco é lida em relação ao branco da fita entre as marcas, como na leitura automática. */
+const PASSOS_MARCAR = {
+  cl: "Toque na foto no <b>1º quadrado, o do cloro livre</b>, na ponta da fita. Se a água não tem cloro, ele fica branco: toque nele assim mesmo.",
+  alk: "Agora toque no <b>2º quadrado, o da alcalinidade</b>.",
+  ph: "Agora toque no <b>3º quadrado, o do pH</b>.",
+  dc: "Por último, toque no <b>4º quadrado, o da dureza total</b>, o mais perto do cabo.",
+};
+let ultimoMarcar = "";
+function renderMarcar(est, L) {
+  const pontos = MODOS.fita.pontos, idx = pontos.findIndex(p => p.id === est.ativo);
+  $("#marcar-titulo").textContent = est.auto === "ok" ? "Marque os blocos à mão" : "Não achamos a fita sozinhos";
+  const agora = est.ativo ? PASSOS_MARCAR[est.ativo]
+    : "Pronto, os 4 blocos estão marcados. Para corrigir um, toque nele aqui embaixo e depois no lugar certo da foto.";
+  if ($("#marcar-agora").innerHTML !== agora) $("#marcar-agora").innerHTML = agora;
+  document.querySelectorAll("#marcar-ilu .pad").forEach(r => r.classList.toggle("agora", +r.dataset.k === idx));
+  const html = pontos.map((p, k) => {
+    const feito = !!est.marcas[p.id], atual = est.ativo === p.id;
+    const sub = atual ? (feito ? "toque no lugar certo" : "toque na foto")
+      : feito ? `<span class="sw" style="background:${L.hexPonto[p.id] || "transparent"}"></span>marcado` : "depois";
+    return `<li><button type="button" class="passo${feito ? " feito" : ""}" data-id="${p.id}"${atual ? ' aria-current="step"' : ""}>` +
+      `<span class="num" aria-hidden="true">${k + 1}</span><span><b>${p.nome}</b><small>${sub}</small></span></button></li>`;
+  }).join("");
+  if (html !== ultimoMarcar) { ultimoMarcar = html; $("#marcar-passos").innerHTML = html; }
+  $("#marcar-desfazer").disabled = !est.historico.length;
+  $("#marcar-limpar").disabled = !Object.keys(est.marcas).length;
+}
+
+// Ponto tocado na foto, em pixels da imagem.
+function pontoNaFoto(ev, est) {
+  const r = cv.getBoundingClientRect();
+  if (!r.width || !r.height) return null;
+  const x = (ev.clientX - r.left) / r.width * est.w, y = (ev.clientY - r.top) / r.height * est.h;
+  return x >= 0 && y >= 0 && x <= est.w && y <= est.h ? { x, y } : null;
+}
+
+// Ajuste fino: leva o toque para o meio do quadrado colorido, quando ele se separa bem do que está em volta.
+// Um quadrado branco ou cinza (o do cloro sem reação) não se separa do branco da fita: fica onde foi tocado.
+function centralizarNoBloco(est, x, y) {
+  const { w, h, data } = est, R = Math.round(Math.max(10, 0.07 * Math.min(w, h)));
+  const cx = Math.round(x), cy = Math.round(y);
+  const x0 = Math.max(0, cx - R), x1 = Math.min(w - 1, cx + R), y0 = Math.max(0, cy - R), y1 = Math.min(h - 1, cy + R);
+  const W = x1 - x0 + 1, H = y1 - y0 + 1, n = W * H, lab = new Float32Array(n * 3);
+  for (let yy = 0; yy < H; yy++) for (let xx = 0; xx < W; xx++) {
+    const k = ((y0 + yy) * w + x0 + xx) * 4, j = 3 * (yy * W + xx);
+    const l = linToLab([LIN[data[k]], LIN[data[k + 1]], LIN[data[k + 2]]]);
+    lab[j] = l[0]; lab[j + 1] = l[1]; lab[j + 2] = l[2];
+  }
+  // cor de partida: média num quadradinho em volta do toque
+  const sx0 = Math.min(W - 1, cx - x0), sy0 = Math.min(H - 1, cy - y0), sem = [0, 0, 0];
+  let ns = 0;
+  for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+    const xx = sx0 + dx, yy = sy0 + dy;
+    if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+    const j = 3 * (yy * W + xx); sem[0] += lab[j]; sem[1] += lab[j + 1]; sem[2] += lab[j + 2]; ns++;
+  }
+  sem[0] /= ns; sem[1] /= ns; sem[2] /= ns;
+  if (Math.hypot(sem[1], sem[2]) < 10) return null;
+  const parecido = i => { const j = 3 * i, a = lab[j] - sem[0], b = lab[j + 1] - sem[1], c = lab[j + 2] - sem[2]; return a * a + b * b + c * c < 196; };
+  const i0 = sy0 * W + sx0;
+  if (!parecido(i0)) return null;
+  const visto = new Uint8Array(n), fila = new Int32Array(n);
+  let ini = 0, fim = 0, area = 0, sx = 0, sy = 0, bx0 = W, bx1 = 0, by0 = H, by1 = 0;
+  visto[i0] = 1; fila[fim++] = i0;
+  while (ini < fim) {
+    const i = fila[ini++], xx = i % W, yy = (i - xx) / W;
+    area++; sx += xx; sy += yy;
+    if (xx < bx0) bx0 = xx; if (xx > bx1) bx1 = xx; if (yy < by0) by0 = yy; if (yy > by1) by1 = yy;
+    for (const j of [xx > 0 ? i - 1 : -1, xx < W - 1 ? i + 1 : -1, yy > 0 ? i - W : -1, yy < H - 1 ? i + W : -1])
+      if (j >= 0 && !visto[j] && parecido(j)) { visto[j] = 1; fila[fim++] = j; }
+  }
+  const bw = bx1 - bx0 + 1, bh = by1 - by0 + 1;
+  // tem que ser um quadrado: pequeno, cheio e sem encostar na borda da janela (senão é o fundo ou uma faixa)
+  if (area < 12 || bx0 === 0 || by0 === 0 || bx1 === W - 1 || by1 === H - 1) return null;
+  if (area / (bw * bh) < 0.45 || Math.max(bw, bh) > 3 * Math.min(bw, bh)) return null;
+  return { x: x0 + sx / area, y: y0 + sy / area, tam: Math.min(bw, bh) };
+}
+
+// Depois de cada marca: o tamanho do círculo de leitura e o branco da fita ao lado de cada bloco.
+function atualizarMarcasManuais(est) {
+  const ids = MODOS.fita.pontos.map(p => p.id), M = ids.map(id => est.marcas[id]);
+  const med = v => v.slice().sort((a, b) => a - b)[v.length >> 1];
+  const tams = ids.map(id => est.tamanhos[id]).filter(Boolean), passos = [];
+  for (let k = 0; k < 3; k++) if (M[k] && M[k + 1]) passos.push(Math.hypot(M[k + 1].x - M[k].x, M[k + 1].y - M[k].y));
+  // círculo dentro do quadrado: pelo tamanho dos quadrados achados e pela distância entre as marcas
+  let raio = tams.length ? 0.28 * med(tams) : Infinity;
+  if (passos.length) raio = Math.min(raio, 0.16 * med(passos));
+  if (raio < Infinity) est.raio = Math.min(5, Math.max(0.25, Math.round(100 * raio / Math.min(est.w, est.h) * 4) / 4));
+  est.brancos = brancosDasMarcas(est);
+}
+
+// O branco da fita entre as marcas (no meio do caminho de um quadrado ao outro) e no cabo, depois da dureza.
+function brancosDasMarcas(est) {
+  const M = MODOS.fita.pontos.map(p => est.marcas[p.id]);
+  const meio = (a, b) => (a && b ? { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } : null);
+  const alvos = [meio(M[0], M[1]), meio(M[1], M[2]), meio(M[2], M[3]),
+    M[2] && M[3] ? { x: M[3].x + (M[3].x - M[2].x) / 2, y: M[3].y + (M[3].y - M[2].y) / 2 } : null];
+  const r = Math.max(2, 0.8 * raioDe(est)), { w, h, data } = est;
+  const medir = c => {
+    if (!c) return null;
+    const px = [];
+    for (let y = Math.max(0, Math.floor(c.y - r)); y <= Math.min(h - 1, Math.ceil(c.y + r)); y++)
+      for (let x = Math.max(0, Math.floor(c.x - r)); x <= Math.min(w - 1, Math.ceil(c.x + r)); x++) {
+        if ((x - c.x) * (x - c.x) + (y - c.y) * (y - c.y) > r * r) continue;
+        const k = (y * w + x) * 4, lin = [LIN[data[k]], LIN[data[k + 1]], LIN[data[k + 2]]];
+        px.push({ lin, lab: linToLab(lin) });
+      }
+    return px.length >= 4 ? modaCor(px) : null;
+  };
+  return brancoDeCadaBloco(alvos.map(medir));
+}
+
+function marcarNaFoto(ev) {
+  const est = atual();
+  if (!est || est.id !== "fita" || !est.manual || !est.ativo) return;
+  const pt = pontoNaFoto(ev, est);
+  if (!pt) return;
+  const id = est.ativo, bloco = centralizarNoBloco(est, pt.x, pt.y);
+  est.marcas[id] = bloco ? { x: bloco.x, y: bloco.y } : pt;
+  est.tamanhos[id] = bloco ? bloco.tam : null;
+  est.historico = est.historico.filter(q => q !== id).concat(id);
+  // o próximo: o primeiro que ainda falta, seguindo a ordem da fita a partir deste
+  const ids = MODOS.fita.pontos.map(p => p.id), k = ids.indexOf(id);
+  est.ativo = ids.slice(k + 1).concat(ids.slice(0, k)).find(q => !est.marcas[q]) || null;
+  S.hover = null;
+  atualizarMarcasManuais(est);
+  render();
+  if (!est.ativo) mostrarResultado(matchMedia("(prefers-reduced-motion: reduce)").matches);
+}
+
+function comecarMarcacao(est) {
+  est.manual = true; est.marcas = {}; est.historico = []; est.tamanhos = {};
+  est.ativo = MODOS.fita.pontos[0].id; est.brancos = null; est.eixo = null;
 }
 
 /* ---------- Fotos do usuário ---------- */
+// iPhone e iPad: com a lista de tipos no seletor, o próprio iPhone entrega as fotos HEIC da galeria já
+// convertidas em JPEG (com "image/*" ele pode entregar o HEIC original, que alguns navegadores não abrem).
+const NO_IPHONE = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const TIPOS_IPHONE = "image/jpeg,image/png,image/webp,image/gif";
+
+// Leitor de HEIC/HEIF (formato das fotos do iPhone) para quando o navegador não abre a foto.
+// Só é baixado nessa hora; o hash confere que o arquivo é exatamente esta versão.
+const LEITOR_HEIC = {
+  src: "https://cdn.jsdelivr.net/npm/heic-to@1.6.7/dist/iife/heic-to.js",
+  sri: "sha384-f0j56i/85T2+bZ9Y5sSaw7lvxHImEr3LuncAm2tNkfvJdhfcNBPj7ES//QWvXCYC",
+};
+let leitorHeic = null;
+function carregarLeitorHeic() {
+  if (typeof window.HeicTo === "function") return Promise.resolve(window.HeicTo);
+  if (!leitorHeic) leitorHeic = new Promise((ok, falha) => {
+    const s = document.createElement("script");
+    s.src = LEITOR_HEIC.src; s.integrity = LEITOR_HEIC.sri; s.crossOrigin = "anonymous"; s.async = true;
+    s.onload = () => (typeof window.HeicTo === "function" ? ok(window.HeicTo) : falha(new Error("heic")));
+    s.onerror = () => { leitorHeic = null; s.remove(); falha(new Error("heic")); };
+    document.head.appendChild(s);
+  });
+  return leitorHeic;
+}
+// É HEIC/HEIF? Pelo tipo, pelo nome ou pelo começo do arquivo (a caixa "ftyp" com a marca do formato).
+const NOME_HEIC = /\.hei[cf]$/i;
+async function ehHeic(file) {
+  if (/hei[cf]/i.test(file.type || "") || NOME_HEIC.test(file.name || "")) return true;
+  try {
+    const txt = String.fromCharCode(...new Uint8Array(await file.slice(0, 16).arrayBuffer()));
+    return txt.slice(4, 8) === "ftyp" && /^(heic|heix|hevc|hevx|heim|heis|mif1|msf1)$/.test(txt.slice(8, 12));
+  } catch (e) { return false; }
+}
+function imagemDe(blob) {
+  return new Promise((ok, falha) => {
+    const url = URL.createObjectURL(blob), img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); ok(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); falha(new Error("imagem")); };
+    img.src = url;
+  });
+}
+// Abre a foto pelo próprio navegador; se ele não conseguir, tenta outro jeito e, se for HEIC, converte para JPEG.
+async function abrirFoto(file) {
+  try { return await imagemDe(file); } catch (e) { /* tenta de outro jeito */ }
+  if (window.createImageBitmap) { try { return await createImageBitmap(file); } catch (e) { /* idem */ } }
+  if (!(await ehHeic(file))) throw new Error("formato");
+  toast("Convertendo a foto do iPhone…", 20000);
+  const HeicTo = await carregarLeitorHeic();
+  return imagemDe(await HeicTo({ blob: file, type: "image/jpeg", quality: 0.92 }));
+}
 function carregarArquivo(file) {
   if (!file) return;
-  if (file.type && !file.type.startsWith("image/")) { toast("Esse arquivo não é uma imagem. Escolha uma foto."); return; }
-  const modo = S.modo, url = URL.createObjectURL(file), img = new Image();
-  img.onload = () => {
-    const sc = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
-    const [c, g] = novaTela(Math.max(1, Math.round(img.naturalWidth * sc)), Math.max(1, Math.round(img.naturalHeight * sc)));
+  if (file.type && !file.type.startsWith("image/") && !NOME_HEIC.test(file.name || "")) { toast("Esse arquivo não é uma imagem. Escolha uma foto."); return; }
+  const modo = S.modo;
+  abrirFoto(file).then(img => {
+    const w0 = img.naturalWidth || img.width, h0 = img.naturalHeight || img.height;
+    const sc = Math.min(1, 1600 / Math.max(w0, h0));
+    const [c, g] = novaTela(Math.max(1, Math.round(w0 * sc)), Math.max(1, Math.round(h0 * sc)));
     // imagem com fundo transparente (PNG): o transparente vira branco, como aparece na tela
     g.fillStyle = "#FFFFFF";
     g.fillRect(0, 0, c.width, c.height);
     g.drawImage(img, 0, 0, c.width, c.height);
-    URL.revokeObjectURL(url);
+    if (img.close) img.close();
+    esconderToast();
     analisarComTela(modo, c);
-  };
-  img.onerror = () => { URL.revokeObjectURL(url); toast("Não foi possível abrir essa foto. Tente uma imagem JPG ou PNG."); };
-  img.src = url;
+  }, () => {
+    toast(NO_IPHONE
+      ? "Não deu para abrir essa foto. Tire a foto pelo botão Câmera ou, no iPhone, vá em Ajustes › Câmera › Formatos e escolha “Mais Compatível”."
+      : "Não deu para abrir essa foto. Tente outra foto ou tire pelo botão Câmera.", 7000);
+  });
 }
 
 /* ---------- Tela de análise: foto nova → carregamento → resultado ---------- */
@@ -2650,7 +3020,7 @@ function analisarComTela(modo, c) {
 }
 
 function mostrarResultado(reduz) {
-  const v = $("#veredito");
+  const v = $("#veredito").hidden ? $("#marcar") : $("#veredito");
   v.classList.remove("chegou"); void v.offsetWidth; v.classList.add("chegou");
   const r = v.getBoundingClientRect();
   if (r.bottom > window.innerHeight - 8 || r.top < 0) v.scrollIntoView({ block: "nearest", behavior: reduz ? "auto" : "smooth" });
@@ -2850,10 +3220,11 @@ function usarFotoColada(f) {
 
 /* ---------- Ações ---------- */
 let toastT = 0;
-function toast(msg) {
+function toast(msg, ms = 2600) {
   const t = $("#toast"); t.textContent = msg; t.hidden = false;
-  clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 2600);
+  clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, ms);
 }
+function esconderToast() { clearTimeout(toastT); $("#toast").hidden = true; }
 
 function textoLeitura() {
   const est = atual(), L = ler(est), modo = MODOS[S.modo];
@@ -2861,6 +3232,7 @@ function textoLeitura() {
   const out = [`Aqua · ${modo.nome} · ${quando}`];
   const v = veredito(est, L);
   out.push(`Resultado: ${v.titulo}${v.falha ? "" : ` (nível ${v.nivel} de 5)`}${v.sub ? ". " + v.sub : ""}`);
+  if (S.modo === "fita" && est.manual) out.push("Blocos marcados à mão na foto.");
   (v.dicas || []).forEach(d => out.push(`- ${d.rotulo} ${d.texto}`));
   if (S.modo === "agua") {
     const lin = L.pontos.agua;
@@ -2922,6 +3294,7 @@ window.addEventListener("hashchange", () => rota(true));
 $("#btn-camera").addEventListener("click", abrirCamera);
 $("#btn-galeria").addEventListener("click", () => escolherArquivo("galeria"));
 ["#in-camera", "#in-galeria"].forEach(sel => {
+  if (NO_IPHONE) $(sel).setAttribute("accept", TIPOS_IPHONE);
   $(sel).addEventListener("change", ev => {
     esconderAvisoApp();
     carregarArquivo(ev.target.files && ev.target.files[0]);
@@ -2930,6 +3303,42 @@ $("#btn-galeria").addEventListener("click", () => escolherArquivo("galeria"));
   $(sel).addEventListener("cancel", seletorCancelado);
 });
 $("#vazio-scan").addEventListener("click", abrirCamera);
+// marcar os blocos à mão: toque na foto, escolha de qual bloco marcar, desfazer e recomeçar
+cv.addEventListener("click", marcarNaFoto);
+cv.addEventListener("pointermove", ev => {
+  const est = atual(), ok = ev.pointerType === "mouse" && est && est.id === "fita" && est.manual && est.ativo;
+  const novo = ok ? pontoNaFoto(ev, est) : null;
+  if (novo || S.hover) { S.hover = novo; pedirDesenho(); }
+});
+cv.addEventListener("pointerleave", () => { if (S.hover) { S.hover = null; pedirDesenho(); } });
+$("#marcar-passos").addEventListener("click", ev => {
+  const b = ev.target.closest("[data-id]"), est = atual();
+  if (!b || !est || !est.manual) return;
+  est.ativo = b.dataset.id;
+  render();
+});
+$("#marcar-desfazer").addEventListener("click", () => {
+  const est = atual();
+  if (!est || !est.manual || !est.historico.length) return;
+  const id = est.historico.pop();
+  delete est.marcas[id]; delete est.tamanhos[id];
+  est.ativo = id;
+  atualizarMarcasManuais(est);
+  render();
+});
+$("#marcar-limpar").addEventListener("click", () => {
+  const est = atual();
+  if (!est || !est.manual) return;
+  comecarMarcacao(est);
+  render();
+});
+$("#btn-marcar-mao").addEventListener("click", () => {
+  const est = atual();
+  if (!est || est.id !== "fita") return;
+  comecarMarcacao(est);
+  render();
+  $("#marcar").scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+});
 $("#camera-fechar").addEventListener("click", () => fecharCamera(true));
 $("#camera-disparo").addEventListener("click", tirarFoto);
 $("#camera-girar").addEventListener("click", () => { CAM.frente = !CAM.frente; ligarCamera(); });
@@ -2977,7 +3386,7 @@ visor.addEventListener("dragover", ev => { ev.preventDefault(); visor.classList.
 visor.addEventListener("dragleave", () => visor.classList.remove("drop"));
 visor.addEventListener("drop", ev => {
   ev.preventDefault(); visor.classList.remove("drop");
-  const f = [...(ev.dataTransfer?.files || [])].find(x => x.type.startsWith("image/"));
+  const f = [...(ev.dataTransfer?.files || [])].find(x => x.type.startsWith("image/") || NOME_HEIC.test(x.name || ""));
   if (f) carregarArquivo(f);
 });
 document.addEventListener("paste", ev => {
